@@ -1,61 +1,100 @@
 # SDC Governance
 
-W3C standards-based runtime governance for the Semantic Data Charter ecosystem.
+W3C standards-based governance validation for Semantic Data Charter instances.
 
-A Python library that enforces governance at execution time - workflow state machines, attestation authority, provenance chains, and constraint validation - using W3C PROV, Verifiable Credentials patterns, and SHACL.
+A Python library that validates governance content in XML data instances against governance components defined in the SDC data model. If the model defines governance (workflow, attestation, party/role, provenance, audit), the instance must carry that content - and this library validates it.
 
-## Why This Exists
+No framework dependency. No middleware. A function call.
 
-SDC models define what *should* happen: legitimate workflow transitions, attestation authority, provenance requirements. This library enforces whether it *can* happen at the moment of execution.
+## How It Works
 
-Every state change is verified against the governance model before it's allowed to commit. Every decision produces a tamper-evident receipt. Every action is provenance-recorded using W3C PROV. The enforcement is deterministic: same input replays to the same decision.
+SDC data models (XSD) can optionally include governance components: Workflow state machines, Attestation authority requirements, Party/Role constraints, Provenance requirements, and Audit definitions. These are part of the data model, not a separate governance layer.
 
-## Architecture
+When governance components are defined, every XML data instance must carry the corresponding governance content. This library validates that content against the model:
 
-The library is framework-agnostic at the core, with an optional Django integration subpackage for SDCStudio AppGen-generated applications.
+```python
+from sdc_governance import validate_governance
 
-```
-sdc_governance/
-├── provenance.py      # W3C PROV record generation
-├── workflow.py         # State machine enforcement
-├── attestation.py      # Authority verification (VC pattern)
-├── shacl_runtime.py    # Runtime SHACL validation
-├── receipts.py         # Decision receipt chain (hash-chained)
-└── django/
-    ├── middleware.py   # Django middleware for automatic enforcement
-    ├── signals.py      # Django model signals
-    └── admin.py        # Governance dashboard
+result = validate_governance("model.xsd", "instance.xml")
+
+print(result.decision)      # EXECUTE, REFUSE, ESCALATE, or SKIP
+print(result.has_governance) # True if model defines governance components
+print(result.errors)         # list of governance validation errors
+print(result.receipt)        # tamper-evident decision receipt
 ```
 
-**Core modules** are pure Python. No Django dependency. Usable in any Python application.
+If the model does not define governance components, the result is `SKIP` - no governance validation needed.
 
-**Django subpackage** provides middleware, signals, and admin integration for AppGen-generated apps and any Django project. Generated apps add `sdc-governance` to requirements.txt and wire up configuration - no governance logic in the generated code itself.
+## The Two-Layer Validation Model
 
-## Standards
+```
+Layer 1: sdcvalidator (structural)
+    Does the instance conform to the XSD schema?
 
-- **W3C PROV** (PROV-O, PROV-DM) - provenance records for every state change
-- **W3C Verifiable Credentials Data Model 2.0** - attestation authority pattern
-- **W3C SHACL** - runtime constraint validation beyond XSD structural checks
-- **SHA-256** - tamper-evident hash chains for decision receipts
+Layer 2: sdc-governance (governance)
+    Does the model define governance components?
+    If yes: does the instance carry valid governance content?
+```
 
-## Integration with SDC Ecosystem
+If `sdc-governance` is installed alongside `sdcvalidator`, governance validation is called automatically after structural validation passes. No code changes required.
 
-- **SDCStudio** compiles governance components (workflow, attestation, party/role, provenance) to a configuration file the library reads
-- **AppGen** includes `sdc-governance` in generated app requirements and wires the Django middleware
-- **sdcvalidator** handles structural validation (XSD); `sdc-governance` handles runtime governance enforcement
-- **SDC Agents** can invoke governance checks as tool calls during agentic workflows
+## What Gets Validated
+
+| Component | What the model defines | What the instance must carry |
+|---|---|---|
+| **Workflow** | States, transitions, entry conditions | Current state, proposed transition, satisfied conditions |
+| **Attestation** | Authority requirements per action | Attestation with correct role, party reference, timestamp |
+| **Party/Role** | Role constraints for governed actions | Acting party identification with required role |
+| **Provenance** | Provenance requirements | PROV-formatted record of action, agent, entity, temporal bounds |
+| **Audit** | Audit record requirements | Audit content meeting the model's format and field requirements |
 
 ## Enforcement Decisions
 
-Every governed state change produces one of:
-
 | Decision | Meaning |
 |---|---|
-| **EXECUTE** | Transition is defined, all conditions met, action is allowed |
-| **REFUSE** | Transition is not defined or conditions are not met, action is blocked |
-| **ESCALATE** | Transition is defined but conditions are partially met, requires human review |
+| **EXECUTE** | All governance checks pass - instance is valid |
+| **REFUSE** | One or more governance checks fail - instance is rejected |
+| **ESCALATE** | Governance checks partially pass - requires review (configurable) |
+| **SKIP** | Model does not define governance components - no validation needed |
 
-Every decision produces a W3C PROV record and a hash-chained receipt.
+Every decision produces a W3C PROV record and a SHA-256 hash-chained receipt.
+
+## Standards
+
+- **W3C PROV** (PROV-O, PROV-DM) - provenance records
+- **W3C Verifiable Credentials Data Model 2.0** - attestation authority pattern
+- **W3C SHACL** - cross-entity constraint validation
+- **SHA-256** - tamper-evident hash chains for decision receipts
+
+## Architecture
+
+```
+src/sdc_governance/
+├── __init__.py          # Public API: validate_governance()
+├── model_inspector.py   # Inspect SDC model for governance components
+├── workflow.py          # Validate workflow transitions in instance
+├── attestation.py       # Validate attestation content in instance
+├── party_role.py        # Validate party/role constraints in instance
+├── provenance.py        # Validate provenance records + PROV generation
+├── audit.py             # Validate audit content in instance
+├── receipts.py          # Decision receipt chain (hash-chained)
+└── shacl_runtime.py     # SHACL cross-entity constraint validation
+```
+
+Pure Python. No Django. No middleware. No web framework dependency.
+
+## Installation
+
+```bash
+pip install sdc-governance
+```
+
+## Integration with SDC Ecosystem
+
+- **sdcvalidator** - structural validation (Layer 1). If sdc-governance is installed, sdcvalidator calls it automatically after structural validation passes.
+- **SDCStudio** - models governance components visually. The XSD output includes governance definitions that sdc-governance validates against.
+- **AppGen** - generated applications can call `validate_governance()` at data entry boundaries.
+- **SDC Agents** - agents can invoke governance validation as a tool call during agentic workflows.
 
 ## Status
 
@@ -65,7 +104,6 @@ Pre-alpha. Planning phase. See [PLANNING.md](PLANNING.md) for the architecture a
 
 - `rdflib` - RDF/PROV record generation
 - `pyshacl` - SHACL constraint validation
-- `django` - optional, only for the django/ subpackage
 
 ## License
 

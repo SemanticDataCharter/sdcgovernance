@@ -29,13 +29,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-django = [
-    "django>=5.0",
-]
 dev = [
     "pytest>=8.0",
     "pytest-cov",
-    "pytest-django>=4.5",
 ]
 
 [project.urls]

@@ -1,22 +1,27 @@
 """
-SDC Governance - W3C standards-based runtime governance for the SDC ecosystem.
+SDC Governance - W3C standards-based governance validation for SDC instances.
 
-Enforces governance at execution time using W3C PROV, Verifiable Credentials
-patterns, and SHACL. Framework-agnostic core with optional Django integration.
+Validates governance content in XML data instances against governance
+components defined in the SDC data model. If the model defines governance
+(workflow, attestation, party/role, provenance, audit), the instance must
+carry that governance content - and this library validates it.
+
+No framework dependency. No middleware. A function call.
 
 Install from PyPI::
 
     pip install sdc-governance
 
-For Django integration::
-
-    pip install sdc-governance[django]
-
 Basic usage::
 
-    from sdc_governance.workflow import WorkflowEnforcer
-    from sdc_governance.provenance import ProvenanceRecorder
-    from sdc_governance.receipts import ReceiptChain
+    from sdc_governance import validate_governance
+
+    result = validate_governance("model.xsd", "instance.xml")
+    print(result.decision)   # EXECUTE, REFUSE, ESCALATE, or SKIP
+    print(result.errors)     # list of governance validation errors
+
+If installed alongside sdcvalidator, governance validation is called
+automatically after structural validation passes.
 
 See https://github.com/SemanticDataCharter/SDC_Governance for documentation.
 """

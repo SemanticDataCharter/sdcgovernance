@@ -7,7 +7,7 @@ Thank you for your interest in contributing to SDC Governance.
 ```bash
 git clone https://github.com/SemanticDataCharter/SDC_Governance.git
 cd SDC_Governance
-pip install -e ".[dev,django]"
+pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
@@ -36,7 +36,7 @@ pytest tests/ -v --tb=short
 
 See [PLANNING.md](PLANNING.md) for the architecture overview and implementation roadmap.
 
-The core modules in `src/sdc_governance/` must remain framework-agnostic (no Django imports). Django-specific code belongs in `src/sdc_governance/django/`.
+All modules in `src/sdc_governance/` are pure Python with no framework dependency. The library is an instance validator - it compares XML instance content against the governance components defined in the SDC data model. No Django, no middleware, no web framework.
 
 ## License
 

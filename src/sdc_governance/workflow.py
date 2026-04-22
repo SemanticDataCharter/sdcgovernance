@@ -1,18 +1,17 @@
 """
-State machine enforcement for SDC governance.
+Workflow state machine validation for SDC governance.
 
-Evaluates whether a proposed state transition is admissible under the
-current workflow model. Returns EXECUTE, REFUSE, or ESCALATE with a
-PROV record documenting the decision.
+Validates that workflow transitions in the XML instance are legitimate
+according to the state machine defined in the SDC data model's Workflow
+components. Checks transition validity and entry conditions.
 
-SDC workflow components define the legitimate transitions and entry
-conditions. This module enforces them at runtime.
+Returns EXECUTE, REFUSE, or ESCALATE with a decision receipt.
 """
 
 # TODO: Phase 2 implementation
-# - Load workflow definition from SDC governance configuration
-# - Validate proposed transition against defined state machine
+# - Extract state machine from model (via model_inspector)
+# - Parse workflow state and proposed transition from instance content
+# - Validate transition exists in the state machine
 # - Check entry conditions (attestations present, party/role authorized)
-# - Return enforcement decision (EXECUTE / REFUSE / ESCALATE)
-# - Generate PROV record for every decision
-# - Configuration reader for SDC governance component format
+# - Return EXECUTE / REFUSE / ESCALATE with details
+# - Generate receipt for the decision

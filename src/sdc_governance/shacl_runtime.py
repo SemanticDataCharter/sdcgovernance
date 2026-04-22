@@ -1,16 +1,15 @@
 """
-Runtime SHACL validation for SDC governance.
+SHACL validation for SDC governance.
 
-Validates data against SHACL shapes at write time, complementing
-the XSD structural validation provided by sdcvalidator. Enables
-complex cross-field and cross-entity constraints that XSD alone
-cannot express.
+Validates cross-entity and cross-field constraints that XSD structural
+validation alone cannot express. Complements sdcvalidator's XSD checks
+with SHACL shapes validation against the graph representation.
 
 Standards: W3C SHACL (https://www.w3.org/TR/shacl/)
 """
 
-# TODO: Phase 4 implementation
+# TODO: Phase 5 implementation
 # - Load SHACL shapes compiled from SDC model constraints
-# - Validate at write time against graph representation
+# - Validate instance content against graph representation
 # - Produce SHACL validation reports in standard format
 # - Integration with pyshacl library
