@@ -6,11 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "sdc-governance"
 version = "4.0.0"
 description = "W3C standards-based runtime governance for the Semantic Data Charter ecosystem"
-readme = "README.md"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 requires-python = ">=3.10"
+readme = "README.md"
 authors = [
-    {name = "Timothy W. Cook", email = "twcook@axius-sdc.com"},
+    {name = "Semantic Data Charter Foundation"},
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -34,6 +34,7 @@ django = [
 ]
 dev = [
     "pytest>=8.0",
+    "pytest-cov",
     "pytest-django>=4.5",
 ]
 
@@ -41,3 +42,6 @@ dev = [
 Homepage = "https://semanticdatacharter.com"
 Repository = "https://github.com/SemanticDataCharter/SDC_Governance"
 Issues = "https://github.com/SemanticDataCharter/SDC_Governance/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
