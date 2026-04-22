@@ -127,9 +127,9 @@ If no governance components are defined in the model, return SKIP. The model aut
 
 For each governance component defined in the model, examine the corresponding content in the XML instance:
 
-**Workflow**: The instance says "transitioning from state A to state B." The model says state A can transition to states B and C but not D. If the instance says A→D, REFUSE. If A→B, check entry conditions.
+**Workflow**: The model defines all possible states and legitimate transitions (the state machine). The instance carries previous state, current state, and allowed next state(s). sdc-governance validates that the instance's claimed transition exists in the model's state machine. If the instance says A→D but the model only defines A→B and A→C, REFUSE. Exact data element structure for workflow instances TBD.
 
-**Attestation**: The model says this transition requires attestation from a "reviewer" role. The instance must contain an attestation element with the correct role, a valid party reference, and a timestamp. If missing or invalid, REFUSE.
+**Attestation**: Attestation is independent from workflow. An attestation is an identified entity (person or agent) asserting that the data instance is true or valid. If the model defines an Attestation component, the instance must contain a valid attestation element with the correct party reference and timestamp. If missing or invalid, REFUSE. Attestation is NOT automatically required for workflow transitions - they are independent governance dimensions that compose optionally.
 
 **Party/Role**: The model says only parties with role "approver" can perform this action. The instance identifies the acting party. Validate that the party's role matches the requirement.
 
@@ -188,55 +188,60 @@ The receipt is a PROV-formatted record of the validation decision, hash-chained 
 
 ---
 
-## Configuration Hierarchy (DRAFT - requires further design)
+## Governance Configuration: The Model IS the Configuration
 
-How users determine what gets enforced and how. Three levels, from simplest to most flexible:
+There is no separate configuration layer. The SDC data model defines what governance exists. The instance carries the governance content. sdc-governance validates one against the other.
 
-### Level 1: Defaults (zero configuration)
+### Default Project Models (the starting point)
 
-If the SDC model includes governance components, sdc-governance validates them with sensible default rules. The user modeled a Workflow or an Attestation in SDCStudio and the validation just happens. No configuration step.
+The SDCStudio Default project will contain pre-built, reusable governance components:
+- Workflow component (W3C-aligned state machine)
+- Attestation component (W3C VC-aligned authority assertion)
+- Party/Participation components (role definitions)
+- Audit component (record requirements)
+- Provenance component (PROV-aligned tracking requirements)
 
-Candidate default rules (to be refined):
-- Every workflow transition requires at least one attestation
-- Every state change must carry a provenance record (who, when, what)
-- Party must be identified (not anonymous) for any governed action
-- Audit records must include timestamp, actor, and action type
-- Receipts are always generated for governed actions
+These are standard SDC components in the public catalog. Users compose them into their data models the same way they compose any other component. The sdc-governance library reads whatever governance components the user included - it does not hardcode governance rules.
 
-These defaults serve the majority use case: "turn on governance" without designing a governance ontology.
+### How users get governance
 
-### Level 2: Model-driven configuration (the SDC way)
+1. **Use the defaults**: Include the Default project's governance components in your data model as-is. Most users start here.
+2. **Customize**: Copy a public governance component into your private project and modify it. SDCStudio supports this natively - copy, place in your project, modify to your needs. This is how users define governance rules outside the W3C standard defaults without needing an override mechanism.
+3. **Build from scratch**: Model your own governance components for domain-specific requirements. sdc-governance validates whatever governance components are in the model, regardless of whether they came from the Default project or were custom-built.
 
-The governance rules are expressed IN the SDC model itself. When a practitioner builds a Workflow component in SDCStudio, the states, transitions, and entry conditions ARE the configuration. The library reads them from the XSD. No separate config file. No YAML. No JSON settings.
+No override files. No YAML configuration. No separate governance config. The model is the single source of truth. Customization happens through the same modeling process practitioners already know.
 
-This is consistent with SDC's core philosophy: the data model is the single source of truth. Governance configuration is just more modeling.
+### Independence of governance dimensions
 
-### Level 3: Override file (escape hatch)
+Each governance dimension is independent. Including a Workflow component does not require including an Attestation component. Including Attestation does not require including Party/Role. Each dimension validates only if the model defines it. If the model defines Workflow but not Attestation, sdc-governance validates workflow transitions and ignores attestation. This is by design.
 
-For edge cases where model-defined rules need adjustment at deployment time (e.g., "in this environment, ESCALATE instead of REFUSE for missing attestations"), an optional override file can relax or tighten specific defaults.
-
-The hierarchy: **override > model-defined > defaults**. If no override exists, the model defines the rules. If the model doesn't specify, defaults apply.
+The original SDC concept: Attestation is an identified entity asserting that the data instance is true/valid. Workflow is about valid states and routing. They CAN compose together but are not coupled.
 
 ### Open Design Questions
 
-This configuration model is not fully resolved. Key questions:
-
-- How do defaults interact with partially-defined governance? (e.g., model defines Workflow but not Attestation - does the default "every transition requires attestation" apply or is it skipped because Attestation wasn't modeled?)
-- Where do the default rules live - hardcoded in the library, or in a default SHACL shapes file that ships with the package?
-- How granular are overrides - per model, per component, per transition?
-- How does the override file interact with the sdcvalidator hook - does it need to be passed separately or discovered by convention?
-- Can defaults be versioned so that upgrading sdc-governance doesn't silently change enforcement behavior on existing deployments?
-
-These questions are the reason this library was deferred for years. The modeling is straightforward. The configuration semantics require careful design to avoid creating the same "documentation binder nobody reads" problem that SDC was built to eliminate.
+- Exact data elements for the Workflow component: previous state, current state, and allowed next state(s) are the minimum. The model defines all possible states and transitions. The instance carries the state history. Exact modeling structure TBD.
+- How provenance requirements are expressed in the model vs what the instance must carry
+- Whether the Default project governance models should ship as part of the sdc-governance package or remain purely in the SDCStudio catalog
+- How the extended sdcvalidator in SDCStudio/SDCStudioSov (with ExceptionalValues injection) integrates the hook differently from the open source sdcvalidator
 
 ---
 
-## Dependencies
+## Dependencies and Integration
 
+### Library dependencies
 - rdflib (for PROV record generation and RDF export)
 - pyshacl (for SHACL constraint validation in Phase 5)
 - xmlschema or lxml (for XSD model inspection - may reuse sdcvalidator's dependency)
 - No Django dependency. No web framework dependency. Pure Python.
+
+### sdcvalidator hook (primary integration path)
+The correct integration is a hook from sdcvalidator. sdcvalidator is already the accepted XSD validator and operates on the SDC instance data. When sdc-governance is installed, sdcvalidator passes the instance and schema to `validate_governance()` after structural validation passes.
+
+This hook must also be implemented in:
+- **SDCStudio** (cloud) - uses an extended version of sdcvalidator that can inject ExceptionalValues
+- **SDCStudioSov** (sovereign) - same extended version
+
+The ExceptionalValues injection functionality does not exist in the open source sdcvalidator. The hook implementation may differ between the open source and extended versions, but the sdc-governance API is the same in both cases - it receives an instance and a schema and returns a governance validation result.
 
 ## What This Means for Practitioners
 
