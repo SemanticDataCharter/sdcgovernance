@@ -188,6 +188,49 @@ The receipt is a PROV-formatted record of the validation decision, hash-chained 
 
 ---
 
+## Configuration Hierarchy (DRAFT - requires further design)
+
+How users determine what gets enforced and how. Three levels, from simplest to most flexible:
+
+### Level 1: Defaults (zero configuration)
+
+If the SDC model includes governance components, sdc-governance validates them with sensible default rules. The user modeled a Workflow or an Attestation in SDCStudio and the validation just happens. No configuration step.
+
+Candidate default rules (to be refined):
+- Every workflow transition requires at least one attestation
+- Every state change must carry a provenance record (who, when, what)
+- Party must be identified (not anonymous) for any governed action
+- Audit records must include timestamp, actor, and action type
+- Receipts are always generated for governed actions
+
+These defaults serve the majority use case: "turn on governance" without designing a governance ontology.
+
+### Level 2: Model-driven configuration (the SDC way)
+
+The governance rules are expressed IN the SDC model itself. When a practitioner builds a Workflow component in SDCStudio, the states, transitions, and entry conditions ARE the configuration. The library reads them from the XSD. No separate config file. No YAML. No JSON settings.
+
+This is consistent with SDC's core philosophy: the data model is the single source of truth. Governance configuration is just more modeling.
+
+### Level 3: Override file (escape hatch)
+
+For edge cases where model-defined rules need adjustment at deployment time (e.g., "in this environment, ESCALATE instead of REFUSE for missing attestations"), an optional override file can relax or tighten specific defaults.
+
+The hierarchy: **override > model-defined > defaults**. If no override exists, the model defines the rules. If the model doesn't specify, defaults apply.
+
+### Open Design Questions
+
+This configuration model is not fully resolved. Key questions:
+
+- How do defaults interact with partially-defined governance? (e.g., model defines Workflow but not Attestation - does the default "every transition requires attestation" apply or is it skipped because Attestation wasn't modeled?)
+- Where do the default rules live - hardcoded in the library, or in a default SHACL shapes file that ships with the package?
+- How granular are overrides - per model, per component, per transition?
+- How does the override file interact with the sdcvalidator hook - does it need to be passed separately or discovered by convention?
+- Can defaults be versioned so that upgrading sdc-governance doesn't silently change enforcement behavior on existing deployments?
+
+These questions are the reason this library was deferred for years. The modeling is straightforward. The configuration semantics require careful design to avoid creating the same "documentation binder nobody reads" problem that SDC was built to eliminate.
+
+---
+
 ## Dependencies
 
 - rdflib (for PROV record generation and RDF export)
