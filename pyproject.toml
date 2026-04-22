@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sdc-governance"
+name = "sdcgovernance"
 version = "4.0.0"
-description = "W3C standards-based runtime governance for the Semantic Data Charter ecosystem"
+description = "W3C standards-based governance validation for Semantic Data Charter instances"
 license = "Apache-2.0"
 requires-python = ">=3.10"
 readme = "README.md"
@@ -36,8 +36,8 @@ dev = [
 
 [project.urls]
 Homepage = "https://semanticdatacharter.com"
-Repository = "https://github.com/SemanticDataCharter/SDC_Governance"
-Issues = "https://github.com/SemanticDataCharter/SDC_Governance/issues"
+Repository = "https://github.com/SemanticDataCharter/sdcgovernance"
+Issues = "https://github.com/SemanticDataCharter/sdcgovernance/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

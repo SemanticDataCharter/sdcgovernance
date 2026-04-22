@@ -1,4 +1,4 @@
-# SDC Governance
+# sdcgovernance
 
 W3C standards-based governance validation for Semantic Data Charter instances.
 
@@ -13,7 +13,7 @@ SDC data models (XSD) can optionally include governance components: Workflow sta
 When governance components are defined, every XML data instance must carry the corresponding governance content. This library validates that content against the model:
 
 ```python
-from sdc_governance import validate_governance
+from sdcgovernance import validate_governance
 
 result = validate_governance("model.xsd", "instance.xml")
 
@@ -31,12 +31,12 @@ If the model does not define governance components, the result is `SKIP` - no go
 Layer 1: sdcvalidator (structural)
     Does the instance conform to the XSD schema?
 
-Layer 2: sdc-governance (governance)
+Layer 2: sdcgovernance (governance)
     Does the model define governance components?
     If yes: does the instance carry valid governance content?
 ```
 
-If `sdc-governance` is installed alongside `sdcvalidator`, governance validation is called automatically after structural validation passes. No code changes required.
+If `sdcgovernance` is installed alongside `sdcvalidator`, governance validation is called automatically after structural validation passes. No code changes required.
 
 ## What Gets Validated
 
@@ -69,7 +69,7 @@ Every decision produces a W3C PROV record and a SHA-256 hash-chained receipt.
 ## Architecture
 
 ```
-src/sdc_governance/
+src/sdcgovernance/
 ├── __init__.py          # Public API: validate_governance()
 ├── model_inspector.py   # Inspect SDC model for governance components
 ├── workflow.py          # Validate workflow transitions in instance
@@ -86,13 +86,13 @@ Pure Python. No Django. No middleware. No web framework dependency.
 ## Installation
 
 ```bash
-pip install sdc-governance
+pip install sdcgovernance
 ```
 
 ## Integration with SDC Ecosystem
 
-- **sdcvalidator** - structural validation (Layer 1). If sdc-governance is installed, sdcvalidator calls it automatically after structural validation passes.
-- **SDCStudio** - models governance components visually. The XSD output includes governance definitions that sdc-governance validates against.
+- **sdcvalidator** - structural validation (Layer 1). If sdcgovernance is installed, sdcvalidator calls it automatically after structural validation passes.
+- **SDCStudio** - models governance components visually. The XSD output includes governance definitions that sdcgovernance validates against.
 - **AppGen** - generated applications can call `validate_governance()` at data entry boundaries.
 - **SDC Agents** - agents can invoke governance validation as a tool call during agentic workflows.
 

@@ -1,12 +1,12 @@
-# Contributing to SDC Governance
+# Contributing to sdcgovernance
 
-Thank you for your interest in contributing to SDC Governance.
+Thank you for your interest in contributing to sdcgovernance.
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/SemanticDataCharter/SDC_Governance.git
-cd SDC_Governance
+git clone https://github.com/SemanticDataCharter/sdcgovernance.git
+cd sdcgovernance
 pip install -e ".[dev]"
 pytest tests/ -v
 ```
@@ -36,7 +36,7 @@ pytest tests/ -v --tb=short
 
 See [PLANNING.md](PLANNING.md) for the architecture overview and implementation roadmap.
 
-All modules in `src/sdc_governance/` are pure Python with no framework dependency. The library is an instance validator - it compares XML instance content against the governance components defined in the SDC data model. No Django, no middleware, no web framework.
+All modules in `src/sdcgovernance/` are pure Python with no framework dependency. The library is an instance validator - it compares XML instance content against the governance components defined in the SDC data model. No Django, no middleware, no web framework.
 
 ## License
 
