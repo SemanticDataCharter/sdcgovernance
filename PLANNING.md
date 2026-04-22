@@ -4,24 +4,31 @@
 
 **Date**: 2026-04-22
 **Status**: Planning
-**Decision context**: Veritas partnership confirmed a clean integration boundary (SDC models governance, Veritas enforces at runtime). However, the same enforcement can be built natively into SDCStudio-generated applications using W3C standards, eliminating partner dependency and making governance a default property of every deployment.
 
 ---
 
 ## Strategic Decision
 
-Build execution-time governance directly into the AppGen templates using W3C standards rather than depending on an external execution engine. Every generated Django app ships with runtime enforcement built in.
+Build execution-time governance as an independent, open-source Python library using W3C standards. The library is imported by SDCStudio-generated applications and any other Python project that needs runtime governance enforcement.
 
-**Why this over Veritas:**
-- No partner dependency on a two-person pre-commercial team
-- No adapter layer between SDC models and the enforcement engine
-- Every practitioner deployment gets governance by default, not as an add-on
-- W3C standards make the enforcement interoperable, not proprietary
-- The generated app IS the execution boundary - data enters there, governance enforces there
-- Aligns with "governance travels with the data" thesis
-- The W3C community has been waiting for a runtime that binds their vocabularies to payloads
+**Why W3C standards:**
+- Interoperable with any system that speaks PROV, SHACL, or VC - not just SDC
+- The Linked Data community has mature vocabularies (PROV-O, Traceability Vocab, VC Data Model 2.0) that have been waiting for a runtime implementation
+- No proprietary execution vocabulary to learn or maintain
+- Regulatory alignment: EU AI Act Article 12 (runtime logging) and Article 15 (robustness) map directly to PROV provenance records and SHACL constraint validation
+- Standards-based enforcement is auditable by third parties without vendor-specific tooling
 
-**Veritas relationship**: Not adversarial. Their models can still be published to the catalog as an alternative execution pattern. But SDC's native path uses open standards, not a proprietary engine.
+**Why an independent library:**
+- Every practitioner deployment gets governance by default via `pip install sdc-governance`
+- Bug fixes and features reach every deployment on upgrade - no regenerating apps
+- Testable and versioned independently from AppGen templates
+- Framework-agnostic core works beyond Django (Flask, FastAPI, non-web applications)
+- Follows the established SDC ecosystem pattern (sdcvalidator, form2sdc on PyPI)
+
+**Why not embedded in generated code:**
+- Generated code is a snapshot; a library evolves
+- One codebase to maintain vs governance logic duplicated in every generated app
+- Practitioners can use it in non-AppGen projects and existing Django applications
 
 ---
 
@@ -30,15 +37,6 @@ Build execution-time governance directly into the AppGen templates using W3C sta
 ### Design Principle
 
 Governance enforcement is a **separate open-source library** (`sdc-governance`), not embedded code in generated apps. Generated apps import and configure the library. The library does the enforcement.
-
-This follows the same pattern as `sdcvalidator` (structural validation on PyPI) and `form2sdc` (form conversion on PyPI) - thin, focused libraries that any project can import.
-
-**Why a library, not generated code:**
-- One codebase to maintain - bug fixes and features reach every deployment on `pip install --upgrade`
-- Testable independently with its own test suite
-- Versioned separately from AppGen templates
-- Pluggable - works in non-AppGen Django projects, or non-Django projects entirely
-- Lighter generated code - AppGen templates just add `sdc-governance` to requirements.txt and wire up configuration
 
 ### Library Structure
 
@@ -152,7 +150,6 @@ Append-only receipt log, PROV-formatted, hash-chained.
 ## Implementation Phases
 
 ### Phase 1: Library scaffolding + PROV Provenance
-- Create `sdc-governance` repo (SemanticDataCharter org, Apache 2.0)
 - Core provenance module with W3C PROV record generation
 - Hash-chained receipt foundation
 - Exportable as RDF/Turtle
@@ -210,15 +207,9 @@ Append-only receipt log, PROV-formatted, hash-chained.
 - SDC is the only open-source framework where governance enforcement is a default property of generated applications
 - No dashboard, no separate engine, no vendor dependency
 - "Governance travels with the app" is the natural extension of "governance travels with the data"
-- Direct answer to the Palantir FDE dependency: the generated app enforces governance without vendor engineers on site
 - EU AI Act Article 12 (runtime logging) and Article 15 (robustness) are satisfied structurally, not by bolting on compliance tools
+- The W3C standards community gets a production runtime for vocabularies (PROV, SHACL, VC) that have been mature specifications waiting for implementation adoption
 
----
+## Prior Art and Inspiration
 
-## Relationship to Veritas
-
-This plan does not prevent Veritas from publishing execution-aware components to the SDCStudio catalog. Their dual-gate pattern (semantic gate + execution gate) can exist as an alternative enforcement approach for customers who want it.
-
-The difference: SDC's native approach uses W3C standards and is built into every generated app by default. Veritas's approach uses proprietary execution verbs and requires a separate engine. Both can coexist. The customer chooses.
-
-If Samantha responds to the partnership framing email positively, their models still have a home in the catalog. If she doesn't, SDC has no dependency on them.
+Multiple approaches to execution governance have been evaluated during the design of this library, including deterministic runtime gating, dual-gate execution boundaries, decision-theoretic scoring frameworks, and various proprietary execution engines. None of the approaches evaluated use W3C standards as their enforcement vocabulary. This library fills that gap: W3C-native governance enforcement that is interoperable by design, not by adapter.
