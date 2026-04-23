@@ -73,7 +73,8 @@ This means any system already using sdcvalidator gets governance enforcement for
 ```
 sdcgovernance/
 ├── src/sdcgovernance/
-│   ├── __init__.py          # Public API: validate_governance()
+│   ├── __init__.py          # Public API: validate_governance(), GovernanceEngine
+│   ├── engine.py            # GovernanceEngine - the decision engine agents query
 │   ├── model_inspector.py   # Inspect SDC model for governance components
 │   ├── workflow.py          # Validate workflow transitions in instance
 │   ├── attestation.py       # Validate attestation content in instance
@@ -81,34 +82,109 @@ sdcgovernance/
 │   ├── provenance.py        # Validate provenance records in instance + PROV generation
 │   ├── audit.py             # Validate audit content in instance
 │   ├── receipts.py          # Decision receipt chain (hash-chained)
-│   └── shacl_runtime.py     # SHACL validation for cross-entity constraints
+│   ├── shacl_runtime.py     # SHACL validation for cross-entity constraints
+│   └── mcp_server.py        # MCP server exposing governance tools to any agent
 ├── tests/
 ├── pyproject.toml
 ├── README.md
 └── LICENSE                  # Apache 2.0
 ```
 
-No Django subpackage. No middleware. No signals. Pure Python library.
+Pure Python library. No framework dependency. Dual interface: Python API for direct integration, MCP server for agent consumption.
 
-### Public API
+### Two Interfaces, One Engine
+
+sdcgovernance serves two audiences through the same underlying engine:
+
+**1. Python API** - for direct integration (sdcvalidator hook, generated apps, custom code):
 
 ```python
 from sdcgovernance import validate_governance
 
-# Validate an instance against its model's governance definitions
 result = validate_governance(schema_path, instance_path)
-
-# Result contains:
-# - result.has_governance: bool (does the model define governance components?)
-# - result.workflow_valid: bool | None (None if no workflow defined)
-# - result.attestation_valid: bool | None
-# - result.party_role_valid: bool | None
-# - result.provenance_valid: bool | None
-# - result.audit_valid: bool | None
-# - result.decision: "EXECUTE" | "REFUSE" | "ESCALATE" | "SKIP"
-# - result.errors: list of governance validation errors
-# - result.receipt: tamper-evident decision receipt (PROV-formatted)
+# result.decision: EXECUTE | REFUSE | ESCALATE | SKIP
+# result.errors: list of governance validation errors
+# result.receipt: tamper-evident decision receipt
 ```
+
+**2. MCP Server** - for any agent framework (Claude Code, Cursor, LangGraph, CrewAI, Google ADK, custom agents):
+
+```bash
+sdcgovernance serve --mcp
+```
+
+The MCP server exposes governance as tools that agents call. The agent runs the loop. sdcgovernance is the governance advisor.
+
+### MCP Tools
+
+```
+Tool: get_allowed_transitions
+  Input: instance, current_state
+  Output: list of allowed transitions with entry conditions for each
+  Purpose: Agent asks "what can I do next?"
+
+Tool: evaluate_transition
+  Input: instance, target_state, actor
+  Output: EXECUTE/REFUSE/ESCALATE + receipt + reasoning
+  Purpose: Agent asks "can I do this specific thing?"
+
+Tool: record_provenance
+  Input: instance, activity, agent, result
+  Output: PROV record + hash-chained receipt
+  Purpose: Agent reports what happened for the audit trail
+
+Tool: validate_governance
+  Input: schema, instance
+  Output: full governance validation result
+  Purpose: Complete governance validation (same as Python API)
+
+Tool: get_governance_status
+  Input: schema
+  Output: which governance components the model defines
+  Purpose: Agent asks "what governance exists for this model?"
+```
+
+### Agent Integration Pattern
+
+sdcgovernance is the advisor. The agent is the orchestrator. The agent holds the loop.
+
+```
+Agent receives a task
+  → calls get_allowed_transitions: "what can I do?"
+  → selects a transition based on the task
+  → calls evaluate_transition: "can I do this?"
+  → if EXECUTE: agent performs the action
+  → calls record_provenance: "here's what I did"
+  → if REFUSE: agent reports the refusal
+  → if ESCALATE: agent requests human review
+```
+
+This pattern works identically regardless of the agent framework. Any agent that speaks MCP gets governed behavior without framework-specific integration code.
+
+### Relationship to SDC Agents
+
+SDC Agents (SDC_AgentsSMB) provides reference implementations of governance tool usage. The existing `sdc-agents serve --mcp introspect` pattern is extended with governance:
+
+```bash
+# Existing SDC Agents MCP servers
+sdc-agents serve --mcp introspect
+sdc-agents serve --mcp catalog
+
+# sdcgovernance MCP server (independent, any agent can consume)
+sdcgovernance serve --mcp
+```
+
+SDC Agents shows practitioners how to use governance tools in agentic workflows. Customer agents connect to the same MCP server and use the tools however they want. No lock-in to the SDC Agents framework.
+
+### Why MCP
+
+MCP (Model Context Protocol) is becoming the standard interface between AI agents and external tools. By exposing sdcgovernance as an MCP server:
+
+- Any agent framework can consume governance without custom integration code
+- The governance tools are discoverable by the agent at runtime
+- New governance capabilities (workflow, attestation, provenance) are available to agents immediately on upgrade
+- Customer agents don't need to import a Python library - they connect to the MCP server
+- The same governance engine serves both the sdcvalidator hook (Python API) and agent workflows (MCP)
 
 ### How It Works
 
@@ -158,12 +234,12 @@ The receipt is a PROV-formatted record of the validation decision, hash-chained 
 - PyPI package published
 - Timeline: 2-3 weeks
 
-### Phase 2: Workflow Validation
+### Phase 2: GovernanceEngine + Workflow Validation
+- engine.py: GovernanceEngine class wrapping model_inspector + validation modules
 - workflow.py: validate workflow transitions in instance against model
 - State machine extraction from XSD workflow components
-- Transition validity checking
-- Entry condition verification
-- EXECUTE / REFUSE / ESCALATE decisions
+- Transition validity checking with EXECUTE / REFUSE / ESCALATE decisions
+- GovernanceEngine advisory API: get_allowed_transitions, evaluate_transition
 - Timeline: 3-4 weeks
 
 ### Phase 3: Attestation + Party/Role Validation
@@ -176,15 +252,24 @@ The receipt is a PROV-formatted record of the validation decision, hash-chained 
 ### Phase 4: Provenance + Audit Validation
 - provenance.py: validate provenance records in instance + generate PROV output
 - audit.py: validate audit content against model requirements
+- record_provenance engine method for agent audit trails
 - W3C PROV-O compliant record generation
 - RDF/Turtle export
 - Timeline: 2-3 weeks
 
-### Phase 5: SHACL + sdcvalidator Hook
-- shacl_runtime.py: cross-entity constraint validation via SHACL
+### Phase 5: sdcvalidator Hook + SHACL
 - sdcvalidator integration: optional hook that calls sdcgovernance after structural validation
 - End-to-end validation pipeline: structural → governance in one call
+- shacl_runtime.py: cross-entity constraint validation via SHACL
 - Timeline: 2 weeks
+
+### Phase 6: MCP Server
+- mcp_server.py: MCP stdio server exposing GovernanceEngine tools
+- CLI entry point: sdcgovernance serve --mcp
+- All five MCP tools: get_allowed_transitions, evaluate_transition, record_provenance, validate_governance, get_governance_status
+- Session management for receipt chain continuity
+- Reference implementation in SDC Agents showing governance tool usage
+- Timeline: 2-3 weeks
 
 ---
 
