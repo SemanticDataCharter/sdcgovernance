@@ -18,11 +18,32 @@ Build governance enforcement as an instance validation library. Governance is va
 - Instance validation is payload-bound governance - the governance IS the data. Any system that validates the instance enforces the governance. Platform-agnostic.
 - This is the substrate argument applied to enforcement: governance travels with the data because the governance is in the data.
 
-**Why W3C standards:**
-- Interoperable with any system that speaks PROV, SHACL, or VC
-- The Linked Data community has mature vocabularies waiting for a runtime implementation
-- No proprietary execution vocabulary to learn or maintain
+**Standing on shoulders, not inventing:**
+
+sdcgovernance does not invent governance semantics. It makes existing standards validatable at the instance level and consumable by agents via MCP.
+
+| Governance Need | Standard | How sdcgovernance Uses It |
+|---|---|---|
+| Provenance recording | W3C PROV-O / PROV-DM | Provenance records in instances follow PROV vocabulary |
+| State machine definition | W3C SCXML (State Chart XML) | Workflow Cluster modeled using SCXML semantics (states, transitions, conditions) |
+| Attestation authority | W3C VC Data Model 2.0 | Attestation content follows VC issuer/holder/verifier pattern |
+| Constraint validation | W3C SHACL | Cross-entity constraints delegated to pyshacl |
+| Activity/event types | W3C Activity Streams 2.0 | Provenance activity types (Create, Update, Accept, Reject, etc.) from AS2 vocabulary |
+| Decision outcomes | OASIS XACML pattern | EXECUTE/REFUSE/ESCALATE aligned with XACML PERMIT/DENY/INDETERMINATE |
+| Conditional decision logic | OMG DMN (Decision Model and Notation) | Decision tables for complex governance rules beyond simple state matching |
+
+**What is genuinely novel (no existing standard covers):**
+- The "instance carries governance, validator checks it against the model" pattern - SDC's unique contribution
+- Hash-chained tamper-evident decision receipts linking governance decisions into a verifiable chain
+- MCP server exposing governance as tools for any agent framework
+- DMN decision tables embedded in SDC data models as composable governance components
+
+**Why this standards alignment matters:**
+- Interoperable with any system that speaks these standards
+- No proprietary governance vocabulary to learn or maintain
 - Regulatory alignment: EU AI Act Article 12 and 15 map directly to PROV records and SHACL validation
+- The W3C and OASIS communities have been waiting for a runtime that binds their vocabularies to actual data payloads
+- Web3 settlement layer (Q4 2026 - Q1 2027) requires standards-based governance that can be verified by smart contracts and ZK proofs - proprietary governance vocabularies cannot cross that boundary
 
 ---
 
@@ -234,39 +255,48 @@ The receipt is a PROV-formatted record of the validation decision, hash-chained 
 - PyPI package published
 - Timeline: 2-3 weeks
 
-### Phase 2: GovernanceEngine + Workflow Validation
+### Phase 2: GovernanceEngine + Workflow Validation (SCXML-based)
 - engine.py: GovernanceEngine class wrapping model_inspector + validation modules
 - workflow.py: validate workflow transitions in instance against model
-- State machine extraction from XSD workflow components
-- Transition validity checking with EXECUTE / REFUSE / ESCALATE decisions
+- State machine modeled using W3C SCXML semantics (states, transitions, conditions)
+- Decision outcomes aligned with OASIS XACML pattern (EXECUTE/REFUSE/ESCALATE)
 - GovernanceEngine advisory API: get_allowed_transitions, evaluate_transition
 - Timeline: 3-4 weeks
 
-### Phase 3: Attestation + Party/Role Validation
+### Phase 3: Attestation + Party/Role Validation (VC-based)
 - attestation.py: validate attestation content in instance
 - party_role.py: validate party/role constraints
 - Authority chain verification
 - W3C VC Data Model 2.0 pattern for structured claims
 - Timeline: 2-3 weeks
 
-### Phase 4: Provenance + Audit Validation
+### Phase 4: Provenance + Audit Validation (PROV + Activity Streams)
 - provenance.py: validate provenance records in instance + generate PROV output
 - audit.py: validate audit content against model requirements
 - record_provenance engine method for agent audit trails
+- Activity types from W3C Activity Streams 2.0 vocabulary
 - W3C PROV-O compliant record generation
 - RDF/Turtle export
 - Timeline: 2-3 weeks
 
-### Phase 5: sdcvalidator Hook + SHACL
+### Phase 5: DMN Decision Tables
+- decision.py: evaluate conditional governance rules using OMG DMN semantics
+- Decision tables for governance rules that go beyond simple state matching
+- Example: "allow this transition only if risk score < threshold AND attestation level >= required"
+- SDCStudio Default project includes starter decision table components
+- Critical foundation for Web3 settlement layer (Q4 2026 - Q1 2027) where smart contracts need deterministic, standards-based decision logic to verify
+- Timeline: 3-4 weeks
+
+### Phase 6: sdcvalidator Hook + SHACL
 - sdcvalidator integration: optional hook that calls sdcgovernance after structural validation
 - End-to-end validation pipeline: structural → governance in one call
 - shacl_runtime.py: cross-entity constraint validation via SHACL
 - Timeline: 2 weeks
 
-### Phase 6: MCP Server
+### Phase 7: MCP Server
 - mcp_server.py: MCP stdio server exposing GovernanceEngine tools
 - CLI entry point: sdcgovernance serve --mcp
-- All five MCP tools: get_allowed_transitions, evaluate_transition, record_provenance, validate_governance, get_governance_status
+- All MCP tools: get_allowed_transitions, evaluate_transition, evaluate_decision, record_provenance, validate_governance, get_governance_status
 - Session management for receipt chain continuity
 - Reference implementation in SDC Agents showing governance tool usage
 - Timeline: 2-3 weeks
