@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test instance with subject, provider, and participation -->
+<sdc4:dm-test xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/">
+  <dm-label>Test Party Role</dm-label>
+  <dm-language>en-US</dm-language>
+  <dm-encoding>utf-8</dm-encoding>
+  <instance_id>cuid2-test-party-001</instance_id>
+  <subject>
+    <party-name>John Doe</party-name>
+    <party-ref>
+      <label>Patient Reference</label>
+      <link>https://identity.example.com/patients/john-doe</link>
+      <relation>patient</relation>
+    </party-ref>
+  </subject>
+  <provider>
+    <party-name>Dr. Smith</party-name>
+    <party-ref>
+      <label>Provider Reference</label>
+      <link>https://identity.example.com/providers/dr-smith</link>
+      <relation>provider</relation>
+    </party-ref>
+  </provider>
+  <provider>
+    <party-name>Lab System A</party-name>
+    <party-ref>
+      <label>Device Reference</label>
+      <link>https://devices.example.com/lab-system-a</link>
+      <relation>device</relation>
+    </party-ref>
+  </provider>
+  <sdc4:Participation>
+    <label>Reviewing Physician</label>
+    <performer>
+      <party-name>Dr. Jones</party-name>
+      <party-ref>
+        <label>Provider Reference</label>
+        <link>https://identity.example.com/providers/dr-jones</link>
+        <relation>provider</relation>
+      </party-ref>
+    </performer>
+    <function>
+      <label>Role</label>
+      <xdstring-value>approver</xdstring-value>
+    </function>
+    <mode>
+      <label>Mode</label>
+      <xdstring-value>present</xdstring-value>
+    </mode>
+    <start>2026-04-24T09:00:00Z</start>
+    <end>2026-04-24T09:30:00Z</end>
+  </sdc4:Participation>
+  <sdc4:Participation>
+    <label>Nurse</label>
+    <performer>
+      <party-name>Nurse Williams</party-name>
+    </performer>
+    <function>
+      <label>Role</label>
+      <xdstring-value>viewer</xdstring-value>
+    </function>
+  </sdc4:Participation>
+</sdc4:dm-test>

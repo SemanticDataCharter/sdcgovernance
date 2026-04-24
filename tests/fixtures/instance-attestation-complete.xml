@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test instance with a complete attestation (pending=false, committer, proof, reason, committed) -->
+<sdc4:dm-test xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/">
+  <dm-label>Test Attestation Complete</dm-label>
+  <dm-language>en-US</dm-language>
+  <dm-encoding>utf-8</dm-encoding>
+  <instance_id>cuid2-test-att-001</instance_id>
+  <instance_version>1</instance_version>
+  <attestation>
+    <label>Clinical Attestation</label>
+    <proof>
+      <label>GPG Signature</label>
+      <xdfile-value>base64-encoded-gpg-signature-data</xdfile-value>
+    </proof>
+    <reason>
+      <label>Attestation Reason</label>
+      <xdstring-value>reviewed_and_approved</xdstring-value>
+    </reason>
+    <committer>
+      <party-name>Dr. Smith</party-name>
+      <party-ref>
+        <label>Provider Reference</label>
+        <link>https://identity.example.com/providers/dr-smith</link>
+        <relation>provider</relation>
+      </party-ref>
+    </committer>
+    <committed>2026-04-24T10:00:00Z</committed>
+    <pending>false</pending>
+  </attestation>
+</sdc4:dm-test>
