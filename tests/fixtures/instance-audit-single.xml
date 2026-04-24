@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test instance with a single audit record (for retention policy: most recent) -->
+<sdc4:dm-test xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/">
+  <dm-label>Test Audit Single</dm-label>
+  <dm-language>en-US</dm-language>
+  <dm-encoding>utf-8</dm-encoding>
+  <instance_id>cuid2-test-audit-004</instance_id>
+  <sdc4:Audit>
+    <label>Current Record</label>
+    <system-id>
+      <label>System ID</label>
+      <xdstring-value>sdc-studio-cloud</xdstring-value>
+    </system-id>
+    <system-user>
+      <party-name>Dr. Smith</party-name>
+    </system-user>
+    <timestamp>2026-04-24T10:00:00Z</timestamp>
+  </sdc4:Audit>
+</sdc4:dm-test>

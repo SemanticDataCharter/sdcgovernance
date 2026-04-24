@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test instance with audit record missing required system-id -->
+<sdc4:dm-test xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/">
+  <dm-label>Test Audit Missing System ID</dm-label>
+  <dm-language>en-US</dm-language>
+  <dm-encoding>utf-8</dm-encoding>
+  <instance_id>cuid2-test-audit-002</instance_id>
+  <sdc4:Audit>
+    <label>Incomplete Record</label>
+    <system-user>
+      <party-name>Dr. Smith</party-name>
+    </system-user>
+    <timestamp>2026-04-24T08:00:00Z</timestamp>
+  </sdc4:Audit>
+</sdc4:dm-test>

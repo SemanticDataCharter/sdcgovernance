@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test instance with complete audit records (2 records, full chain) -->
+<sdc4:dm-test xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/">
+  <dm-label>Test Audit Complete</dm-label>
+  <dm-language>en-US</dm-language>
+  <dm-encoding>utf-8</dm-encoding>
+  <instance_id>cuid2-test-audit-001</instance_id>
+  <instance_version>2</instance_version>
+  <sdc4:Audit>
+    <label>Initial Creation</label>
+    <system-id>
+      <label>System ID</label>
+      <xdstring-value>epic-ehr-prod-01</xdstring-value>
+    </system-id>
+    <system-user>
+      <party-name>Dr. Smith</party-name>
+      <party-ref>
+        <label>Provider Reference</label>
+        <link>https://identity.example.com/providers/dr-smith</link>
+        <relation>provider</relation>
+      </party-ref>
+    </system-user>
+    <location>
+      <label>Porto Sereno General Hospital</label>
+    </location>
+    <timestamp>2026-04-24T08:00:00Z</timestamp>
+  </sdc4:Audit>
+  <sdc4:Audit>
+    <label>Review Update</label>
+    <system-id>
+      <label>System ID</label>
+      <xdstring-value>sdc-studio-cloud</xdstring-value>
+    </system-id>
+    <system-user>
+      <party-name>Dr. Jones</party-name>
+    </system-user>
+    <timestamp>2026-04-24T10:30:00Z</timestamp>
+  </sdc4:Audit>
+</sdc4:dm-test>
