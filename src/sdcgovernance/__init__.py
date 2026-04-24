@@ -31,6 +31,7 @@ See https://github.com/SemanticDataCharter/sdcgovernance for documentation.
 
 __version__ = "4.0.0a1"
 
+from sdcgovernance.engine import GovernanceEngine
 from sdcgovernance.model_inspector import GovernanceModel, inspect_model
 from sdcgovernance.receipts import (
     Decision,
@@ -43,6 +44,7 @@ __all__ = [
     "validate_governance",
     "inspect_model",
     "Decision",
+    "GovernanceEngine",
     "GovernanceModel",
     "GovernanceResult",
     "Receipt",

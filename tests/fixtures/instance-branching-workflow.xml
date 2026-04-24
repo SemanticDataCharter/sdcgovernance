@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test instance with a branching workflow:
+     Path A: draft -> review -> approved -> published
+     Path B: draft -> review -> rejected -> archived
+     "draft" and "review" are shared states (same symbol) across both paths -->
+<sdc4:dm-test xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/">
+  <dm-label>Test Branching Workflow</dm-label>
+  <dm-language>en-US</dm-language>
+  <dm-encoding>utf-8</dm-encoding>
+  <instance_id>cuid2-test-branching-001</instance_id>
+  <instance_version>1</instance_version>
+  <current-state>review</current-state>
+  <workflow>
+    <label>Approval Workflow</label>
+    <sdc4:Cluster>
+      <label>Approval Path</label>
+      <sdc4:XdOrdinal>
+        <label>Initial State</label>
+        <ordinal>0</ordinal>
+        <symbol>draft</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Review State</label>
+        <ordinal>1</ordinal>
+        <symbol>review</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Approved State</label>
+        <ordinal>2</ordinal>
+        <symbol>approved</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Published State</label>
+        <ordinal>3</ordinal>
+        <symbol>published</symbol>
+      </sdc4:XdOrdinal>
+    </sdc4:Cluster>
+    <sdc4:Cluster>
+      <label>Rejection Path</label>
+      <sdc4:XdOrdinal>
+        <label>Initial State</label>
+        <ordinal>0</ordinal>
+        <symbol>draft</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Review State</label>
+        <ordinal>1</ordinal>
+        <symbol>review</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Rejected State</label>
+        <ordinal>2</ordinal>
+        <symbol>rejected</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Archived State</label>
+        <ordinal>3</ordinal>
+        <symbol>archived</symbol>
+      </sdc4:XdOrdinal>
+    </sdc4:Cluster>
+  </workflow>
+</sdc4:dm-test>

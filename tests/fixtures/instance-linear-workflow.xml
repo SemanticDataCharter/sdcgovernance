@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test instance with a linear workflow: draft -> review -> approved -> published -->
+<sdc4:dm-test xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/">
+  <dm-label>Test Linear Workflow</dm-label>
+  <dm-language>en-US</dm-language>
+  <dm-encoding>utf-8</dm-encoding>
+  <instance_id>cuid2-test-linear-001</instance_id>
+  <instance_version>1</instance_version>
+  <current-state>draft</current-state>
+  <workflow>
+    <label>Document Workflow</label>
+    <sdc4:Cluster>
+      <label>Main Path</label>
+      <sdc4:XdOrdinal>
+        <label>Initial State</label>
+        <ordinal>0</ordinal>
+        <symbol>draft</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Review State</label>
+        <ordinal>1</ordinal>
+        <symbol>review</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Approved State</label>
+        <ordinal>2</ordinal>
+        <symbol>approved</symbol>
+      </sdc4:XdOrdinal>
+      <sdc4:XdOrdinal>
+        <label>Published State</label>
+        <ordinal>3</ordinal>
+        <symbol>published</symbol>
+      </sdc4:XdOrdinal>
+    </sdc4:Cluster>
+  </workflow>
+</sdc4:dm-test>
