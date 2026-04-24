@@ -21,7 +21,7 @@ DMType is the root node of every Data Model. It already defines governance slots
 | `subject` | PartyType | 0..1 | **Party/Role** - human subject (patient, customer, etc.) |
 | `provider` | PartyType | 0..* | **Party/Role** - information source(s) |
 | `sdc4:Participation` | ParticipationType | 0..* | **Party/Role** - additional participations |
-| `acs` | XdLinkType | 0..1 | **Access Control** - reference to access control system (DPV vocabulary) |
+| `acs` | XdLinkType | 0..1 | **Access Control** - link to access control system. DPV recommended but as an XdLinkType it can reference any vocabulary, including industry-specific or local system vocabularies. |
 
 Elements with governance relevance but not primary governance dimensions:
 
@@ -203,7 +203,7 @@ DM (DMType root)
 │       ├── XdOrdinal: State 1      → Same CUID2 = shared state
 │       ├── XdOrdinal: State 4
 │       └── XdOrdinal: State 5
-├── acs (XdLinkType, 0..1)          → Access control (DPV bindings)
+├── acs (XdLinkType, 0..1)          → Access control (DPV recommended, any vocabulary via link)
 ├── Audit[] (AuditType, 0..*)        → Provenance/Audit dimension
 │   ├── system-id (required)
 │   ├── system-user (PartyType)

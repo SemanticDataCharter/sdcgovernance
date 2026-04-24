@@ -96,8 +96,9 @@ Vocabulary bindings on the components within these slots confirm which standards
 | P1-09 | Receipt data structure with SHA-256 hash chain | Each receipt contains: decision, reasoning, timestamp, PROV reference, SHA-256 hash of previous receipt, `DM.instance_id`, `DM.instance_version`. First receipt in chain has null previous hash. instance_id/version verify provenance trail belongs to the correct instance lineage. |
 | P1-10 | Receipt chain is append-only | Receipts cannot be modified or deleted after creation. |
 | P1-11 | Receipt chain is deterministic | Same inputs replay to the same decision and receipt (excluding timestamp). |
-| P1-12 | validate_governance() returns PERMIT when no governance slots populated | Given a model with no governance slots populated in the DM root, validate_governance returns decision=PERMIT, has_governance=False. |
-| P1-13 | PyPI package published | `pip install sdcgovernance` installs the library with model_inspector and receipts functional. |
+| P1-12 | Receipt chain exportable as RDF/Turtle | Receipts are PROV-formatted records. The chain is exportable as RDF/Turtle via rdflib for external audit systems and SPARQL query. |
+| P1-13 | validate_governance() returns PERMIT when no governance slots populated | Given a model with no governance slots populated in the DM root, validate_governance returns decision=PERMIT, has_governance=False. |
+| P1-14 | PyPI package published | `pip install sdcgovernance` installs the library with model_inspector and receipts functional. |
 
 ### Test Strategy
 
@@ -244,7 +245,7 @@ Vocabulary bindings on the components within these slots confirm which standards
 
 ## 11. Phase 5: DMN Decision Tables
 
-**Goal**: Evaluate conditional governance rules using OMG DMN semantics for complex governance logic beyond simple state matching.
+**Goal**: Evaluate conditional governance rules using OMG DMN semantics for complex governance logic beyond simple state matching. Critical foundation for Web3 settlement layer (Q4 2026 - Q1 2027) where smart contracts need deterministic, standards-based decision logic to verify.
 
 ### Requirements
 
@@ -320,11 +321,12 @@ Vocabulary bindings on the components within these slots confirm which standards
 | P7-04 | record_provenance tool | Agent calls tool with activity details, receives PROV record + receipt. |
 | P7-05 | validate_governance tool | Agent calls tool with schema + instance, receives full governance validation result. |
 | P7-06 | get_governance_status tool | Agent calls tool with schema, receives which governance dimensions the model defines. |
-| P7-07 | Session management | Receipt chain maintained across multiple calls within a session. |
-| P7-08 | CordovaOS example: Beat 5 (The Response) | Runnable agent script that walks through the health officer containment trigger with real MCP calls, real governance components, real PERMIT/DENY decisions. |
-| P7-09 | CordovaOS example: Beat 6 (The Investigation) | Runnable agent script that walks through law enforcement accessing health records across domain boundaries. |
-| P7-10 | CordovaOS example: provenance recording | Runnable agent script that records PROV provenance at every governed transition during the Contagion narrative. |
-| P7-11 | Examples are real implementations | No stubs, no mock APIs. Standards reviewers can clone CordovaOS, start the MCP server, run an example, and watch standards enforced end to end. |
+| P7-07 | evaluate_decision tool | Agent calls tool with instance data and decision table reference, receives DMN evaluation result (PERMIT/DENY/INDETERMINATE) + receipt documenting which rules matched. |
+| P7-08 | Session management | Receipt chain maintained across multiple calls within a session. |
+| P7-09 | CordovaOS example: Beat 5 (The Response) | Runnable agent script that walks through the health officer containment trigger with real MCP calls, real governance components, real PERMIT/DENY decisions. |
+| P7-10 | CordovaOS example: Beat 6 (The Investigation) | Runnable agent script that walks through law enforcement accessing health records across domain boundaries. |
+| P7-11 | CordovaOS example: provenance recording | Runnable agent script that records PROV provenance at every governed transition during the Contagion narrative. |
+| P7-12 | Examples are real implementations | No stubs, no mock APIs. Standards reviewers can clone CordovaOS, start the MCP server, run an example, and watch standards enforced end to end. |
 
 ### Test Strategy
 
