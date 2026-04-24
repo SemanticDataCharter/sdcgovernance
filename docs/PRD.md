@@ -93,7 +93,7 @@ Vocabulary bindings on the components within these slots confirm which standards
 | P1-06 | model_inspector detects Party/Role from `DM.Participation[]` | Given a DM with ParticipationType elements containing function constraints, model_inspector extracts role requirements. |
 | P1-07 | model_inspector reads `DM.current-state` | Given a DM instance with current-state populated, model_inspector returns the current workflow position. |
 | P1-08 | GovernanceResult data structure | Contains: decision (PERMIT/DENY/INDETERMINATE), has_governance (bool), errors (list), receipt, dimensions_validated (dict mapping each dimension to its validation result). |
-| P1-09 | Receipt data structure with SHA-256 hash chain | Each receipt contains: decision, reasoning, timestamp, PROV reference, SHA-256 hash of previous receipt. First receipt in chain has null previous hash. |
+| P1-09 | Receipt data structure with SHA-256 hash chain | Each receipt contains: decision, reasoning, timestamp, PROV reference, SHA-256 hash of previous receipt, `DM.instance_id`, `DM.instance_version`. First receipt in chain has null previous hash. instance_id/version verify provenance trail belongs to the correct instance lineage. |
 | P1-10 | Receipt chain is append-only | Receipts cannot be modified or deleted after creation. |
 | P1-11 | Receipt chain is deterministic | Same inputs replay to the same decision and receipt (excluding timestamp). |
 | P1-12 | validate_governance() returns PERMIT when no governance slots populated | Given a model with no governance slots populated in the DM root, validate_governance returns decision=PERMIT, has_governance=False. |
@@ -253,8 +253,10 @@ Vocabulary bindings on the components within these slots confirm which standards
 | P5-01 | Decision table evaluation | Given a decision table with 3 rules, engine evaluates instance data against all rules and returns the matching rule's outcome. |
 | P5-02 | Multi-condition rules | Rule: "PERMIT if risk_score < 5 AND attestation_level >= 'senior'". Instance with risk_score=3, attestation_level='senior' returns PERMIT. |
 | P5-03 | Decision tables composable as governance components | Decision table is an SDC component in the model, discovered by vocabulary binding. |
-| P5-04 | No match returns INDETERMINATE | If no rule matches, the decision is INDETERMINATE. |
-| P5-05 | Decision table results include receipt | Every evaluation produces a hash-chained receipt documenting which rules were checked and which matched. |
+| P5-04 | `DM.protocol` as decision table input | Decision rules can reference DM.protocol value as a condition. Rule: "PERMIT transition only if protocol = 'HIPAA-compliant'". Instance with non-matching protocol returns DENY. |
+| P5-05 | `DM.XdLink[]` relation type validation | Decision rules can validate that XdLink relation types are appropriate for the governance context. Rule: "DENY if XdLink relation='replaces' but target model has incompatible governance." |
+| P5-06 | No match returns INDETERMINATE | If no rule matches, the decision is INDETERMINATE. |
+| P5-07 | Decision table results include receipt | Every evaluation produces a hash-chained receipt documenting which rules were checked and which matched. |
 
 ### Test Strategy
 
@@ -262,6 +264,8 @@ Vocabulary bindings on the components within these slots confirm which standards
 - No match returns INDETERMINATE.
 - Decision tables combined with workflow transitions.
 - Decision table as standalone governance (no workflow).
+- DM.protocol as condition input: matching protocol, non-matching protocol, protocol absent.
+- DM.XdLink[] relation validation: valid relation type, invalid relation type for governance context, supersession chain validation.
 
 ### Deliverables
 
@@ -380,3 +384,12 @@ Vocabulary bindings on the components within these slots confirm which standards
 | MCP SDK changes before Phase 7 | MCP server is Phase 7 (last). SDK changes are absorbed before implementation begins. |
 | CordovaOS governance models require SDCStudio changes | SDCStudio already supports all component types needed. Governance components are standard SDC components with specific vocabulary bindings. |
 | Practitioner program launch (May 1) competes for time | Phase 1 is independent of practitioner work. Implementation begins after launch stabilizes. |
+
+## 18. sdc5 Considerations
+
+Items identified during sdcgovernance design that should inform sdc5 Reference Model planning. Track in [SDCRM sdc5-planning branch](https://github.com/SemanticDataCharter/SDCRM/tree/sdc5-planning).
+
+| Item | Current (sdc4) | sdc5 Consideration |
+|---|---|---|
+| `instance_version` | xs:string (opaque) | Promote to XdStringType with regex pattern enforcement, or XdOrdinal for structural version comparison. sdcgovernance currently treats instance_version as opaque for receipt chain matching; ordinal versioning would enable deterministic "is this newer?" checks without string parsing. |
+| `instance_id` | xs:string (opaque) | Consider CUID2 enforcement at the RM level rather than "UUID recommended" in documentation. |

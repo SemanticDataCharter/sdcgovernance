@@ -23,16 +23,39 @@ DMType is the root node of every Data Model. It already defines governance slots
 | `sdc4:Participation` | ParticipationType | 0..* | **Party/Role** - additional participations |
 | `acs` | XdLinkType | 0..1 | **Access Control** - reference to access control system (DPV vocabulary) |
 
-Non-governance elements in DMType (sdcgovernance does not inspect these):
+Elements with governance relevance but not primary governance dimensions:
+
+| Element | Type | Cardinality | Governance Relevance |
+|---|---|---|---|
+| `instance_id` | xs:string | 0..1 | **Receipt chain identity** - globally unique ID (UUID recommended). Receipts reference instance_id to verify provenance trail belongs to the correct instance lineage. |
+| `instance_version` | xs:string | 0..1 | **Receipt chain versioning** - paired with instance_id. Provenance chain tracks which version each governance decision applied to. |
+| `protocol` | XdStringType | 0..1 | **Decision table input** - clinical guideline or operations protocol under which data was captured. A workflow transition may only be valid under certain protocols. Consumed as a condition input by DMN decision tables (Phase 5). |
+| `sdc4:XdLink` | XdLinkType | 0..* | **Governed relationships** - originally intended for model supersession ("this model replaces model X"), but the semantics support any type of related link. See XdLink governance section below. |
+
+Elements sdcgovernance does not inspect:
 - `label` (xs:string, 0..1) - semantic name
 - `dm-language` (xs:language, 1..1) - language code
 - `dm-encoding` (xs:string, 1..1) - encoding, default utf-8
-- `creation_timestamp` (xs:dateTime, 0..1) - versioning
-- `instance_id` (xs:string, 0..1) - globally unique identifier
-- `instance_version` (xs:string, 0..1) - version
-- `sdc4:Item` (ItemType, 1..1) - the actual data content
-- `protocol` (XdStringType, 0..1) - operations protocol
-- `sdc4:XdLink` (XdLink, 0..*) - external entity links
+- `creation_timestamp` (xs:dateTime, 0..1) - runtime creation timestamp
+- `sdc4:Item` (ItemType, 1..1) - the actual data content (sdcvalidator's domain)
+
+---
+
+## XdLinkType - Governed Relationships
+
+XdLinkType extends XdAnyType and carries `link`, `relation`, and `relation-uri` fields. The `relation` and `relation-uri` fields carry the semantics of WHY the link exists, not just WHERE it points.
+
+Originally intended for model supersession chains ("this model replaces model X"), the semantics are general enough to define any type of related link. In a governance context:
+
+**Supersession chains**: "This model replaces model X." sdcgovernance can validate that a transition from an old model version to a new one is legitimate - the new model's XdLink points back to the predecessor with the appropriate relation type.
+
+**Cross-domain references**: "This health record references this law enforcement incident." Governance can check whether the actor has the right to create or follow that link across domain boundaries. The CordovaOS Contagion Beat 6 scenario - law enforcement accessing health records - is carried by XdLinks between domain instances.
+
+**Evidence references**: "This governance decision was based on these external artifacts." An XdLink from a governed instance to the evidence that justified the decision. Pairs naturally with the receipt chain.
+
+**Regulatory references**: "This instance is governed under HIPAA Rule X" or "EU AI Act Article 12." Industry-specific agents can validate that the governance components in the model satisfy the linked regulation's requirements.
+
+sdcgovernance can validate that the `relation` type on an XdLink is appropriate for the governance context - a health record cannot link to a law enforcement incident with relation type "replaces."
 
 **Key insight for model_inspector**: Governance components are at known positions in the DMType root - not scattered arbitrarily in the model. The inspector reads the DM and checks which optional governance slots are populated and what vocabulary bindings they carry.
 
@@ -161,6 +184,16 @@ The model_inspector does NOT need to search arbitrarily through the model for go
 
 ```
 DM (DMType root)
+├── instance_id (xs:string, 0..1)    → Receipt chain identity
+├── instance_version (xs:string, 0..1) → Receipt chain versioning
+├── current-state (xs:string, 0..1)  → Current workflow position
+├── Item (ItemType, 1..1)            → Data content (sdcvalidator, not sdcgovernance)
+├── subject (PartyType, 0..1)        → Party/Role dimension
+├── provider[] (PartyType, 0..*)     → Party/Role dimension
+├── Participation[] (0..*)           → Party/Role dimension
+│   ├── performer (PartyType)
+│   └── function (XdStringType)     → Role check target
+├── protocol (XdStringType, 0..1)    → DMN decision table input
 ├── workflow (ClusterType, 0..1)     → Workflow dimension
 │   ├── sub-cluster: Path A          → Valid workflow path
 │   │   ├── XdOrdinal: State 1      → Sequenced state (SCXML label)
@@ -170,7 +203,7 @@ DM (DMType root)
 │       ├── XdOrdinal: State 1      → Same CUID2 = shared state
 │       ├── XdOrdinal: State 4
 │       └── XdOrdinal: State 5
-├── current-state (xs:string, 0..1)  → Current workflow position
+├── acs (XdLinkType, 0..1)          → Access control (DPV bindings)
 ├── Audit[] (AuditType, 0..*)        → Provenance/Audit dimension
 │   ├── system-id (required)
 │   ├── system-user (PartyType)
@@ -181,20 +214,23 @@ DM (DMType root)
 │   ├── proof (XdFileType)
 │   ├── reason (XdStringType)
 │   └── pending (required)
-├── subject (PartyType, 0..1)        → Party/Role dimension
-├── provider (PartyType, 0..*)
-├── Participation[] (0..*)           → Party/Role dimension
-│   ├── performer (PartyType)
-│   └── function (XdStringType)     → Role check target
-└── acs (XdLinkType, 0..1)          → Access control (DPV bindings)
+└── XdLink[] (XdLinkType, 0..*)      → Governed relationships
+    ├── link                         → Target URI
+    ├── relation                     → Why this link exists
+    └── relation-uri                 → Vocabulary term for relation type
 ```
 
 model_inspector checks:
-1. Is `workflow` populated? → Workflow governance active. Extract cluster tree.
-2. Is `current-state` populated? → Workflow state tracking active.
-3. Are there `Audit` elements? → Provenance governance active. Check retention policy via DPV bindings on `acs`.
-4. Is `attestation` populated? → Attestation governance active.
-5. Are there `Participation` elements with `function` constraints? → Party/Role governance active.
-6. Is `acs` populated? → Access control and retention policy vocabulary available.
+1. Is `instance_id` present? → Store for receipt chain identity. Pair with `instance_version` if present.
+2. Is `workflow` populated? → Workflow governance active. Extract cluster tree.
+3. Is `current-state` populated? → Workflow state tracking active.
+4. Are there `Audit` elements? → Provenance governance active. Check retention policy via DPV bindings on `acs`.
+5. Is `attestation` populated? → Attestation governance active.
+6. Is `subject` populated? → Party governance active (subject identity).
+7. Are there `provider` elements? → Party governance active (information source identity).
+8. Are there `Participation` elements with `function` constraints? → Party/Role governance active.
+9. Is `protocol` populated? → Available as condition input for DMN decision tables.
+10. Is `acs` populated? → Access control and retention policy vocabulary available.
+11. Are there `XdLink` elements? → Governed relationships present. Validate relation types against governance context.
 
 Each check is a known position in the DM root. No arbitrary search needed.
