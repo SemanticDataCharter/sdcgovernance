@@ -32,7 +32,7 @@ SDC instances carry their own meaning. sdcgovernance extends this to enforcement
 
 ## 4. Design Constraints
 
-- Pure Python. No Django, no web framework, no middleware dependency.
+- Pure Python. No web framework, no middleware dependency.
 - Two interfaces (Python API + MCP server), one engine.
 - sdcvalidator and sdcgovernance are independent libraries. No hook, no chaining.
 - Governance components discovered by vocabulary binding, not CUID2 identity.
@@ -63,7 +63,6 @@ SDC instances carry their own meaning. sdcgovernance extends this to enforcement
 | pyshacl | SHACL cross-entity constraint validation | 6 |
 | mcp (optional) | MCP server SDK | 7 |
 
-No Django. No web framework. Pure Python.
 
 ---
 
@@ -71,27 +70,42 @@ No Django. No web framework. Pure Python.
 
 **Goal**: Read an SDC data model and detect which governance components are defined. Establish the receipt chain foundation.
 
+**Implementation context**: Governance components are at known positions in the DMType root (see [RM_Reference.md](RM_Reference.md)). The model_inspector does not search arbitrarily through the model. It reads the DM root and checks which optional governance slots are populated:
+
+- `DM.workflow` (ClusterType, 0..1) - Workflow dimension
+- `DM.current-state` (xs:string, 0..1) - Workflow state tracking
+- `DM.Audit[]` (AuditType, 0..*) - Provenance/Audit dimension
+- `DM.attestation` (AttestationType, 0..1) - Attestation dimension
+- `DM.subject` / `DM.provider` / `DM.Participation[]` - Party/Role dimension
+- `DM.acs` (XdLinkType, 0..1) - Access control and retention policy (DPV bindings)
+
+Vocabulary bindings on the components within these slots confirm which standards they conform to (SCXML, PROV-O, VC, DPV). The location is fixed by the RM; the vocabulary binding confirms the semantics.
+
 ### Requirements
 
 | ID | Requirement | Acceptance Criteria |
 |---|---|---|
-| P1-01 | model_inspector reads an XSD and identifies governance components by vocabulary binding | Given a model with PROV-O bound components, model_inspector returns provenance=True. Given a model with no governance bindings, returns all dimensions as False. |
-| P1-02 | model_inspector discovers Workflow clusters by SCXML vocabulary binding | Given a model with SCXML-bound XdOrdinal components in a cluster tree, model_inspector extracts the cluster structure and ordinal sequences. |
-| P1-03 | model_inspector discovers Attestation by VC vocabulary binding | Given a model with VC-bound components, model_inspector extracts authority requirements. |
-| P1-04 | model_inspector discovers Provenance by PROV-O vocabulary binding | Given a model with PROV-O bound components, model_inspector extracts provenance requirements. |
-| P1-05 | model_inspector discovers retention policy by DPV vocabulary binding | Given a model with DPV-bound retention components, model_inspector extracts retention level (most recent + hash, last N, full chain). |
-| P1-06 | GovernanceResult data structure | Contains: decision (PERMIT/DENY/INDETERMINATE), has_governance (bool), errors (list), receipt, dimensions_validated (dict). |
-| P1-07 | Receipt data structure with SHA-256 hash chain | Each receipt contains: decision, reasoning, timestamp, PROV reference, SHA-256 hash of previous receipt. First receipt in chain has null previous hash. |
-| P1-08 | Receipt chain is append-only | Receipts cannot be modified or deleted after creation. |
-| P1-09 | Receipt chain is deterministic | Same inputs replay to the same decision and receipt (excluding timestamp). |
-| P1-10 | validate_governance() returns PERMIT when model has no governance | Given a model with no governance components, validate_governance returns decision=PERMIT, has_governance=False. |
-| P1-11 | PyPI package published | `pip install sdcgovernance` installs the library with model_inspector and receipts functional. |
+| P1-01 | model_inspector reads DM root and detects populated governance slots | Given a model with `DM.workflow` populated, returns workflow=True. Given a model with no governance slots populated, returns all dimensions as False. |
+| P1-02 | model_inspector extracts Workflow cluster tree from `DM.workflow` | Given a DM.workflow ClusterType with 2 sub-clusters containing SCXML-bound XdOrdinal components, model_inspector extracts both paths with their ordinal sequences. |
+| P1-03 | model_inspector detects Attestation from `DM.attestation` | Given a DM with AttestationType populated (pending, committer, reason, proof), model_inspector extracts authority requirements. Vocabulary bindings to VC terms confirm standard compliance. |
+| P1-04 | model_inspector detects Provenance/Audit from `DM.Audit[]` | Given a DM with AuditType elements (system-id, system-user, location, timestamp), model_inspector extracts provenance requirements. Vocabulary bindings to PROV-O terms confirm standard compliance. |
+| P1-05 | model_inspector extracts retention policy from `DM.acs` DPV bindings | Given a DM with acs linked to DPV-bound retention components, model_inspector extracts retention level (most recent + hash, last N, full chain). |
+| P1-06 | model_inspector detects Party/Role from `DM.Participation[]` | Given a DM with ParticipationType elements containing function constraints, model_inspector extracts role requirements. |
+| P1-07 | model_inspector reads `DM.current-state` | Given a DM instance with current-state populated, model_inspector returns the current workflow position. |
+| P1-08 | GovernanceResult data structure | Contains: decision (PERMIT/DENY/INDETERMINATE), has_governance (bool), errors (list), receipt, dimensions_validated (dict mapping each dimension to its validation result). |
+| P1-09 | Receipt data structure with SHA-256 hash chain | Each receipt contains: decision, reasoning, timestamp, PROV reference, SHA-256 hash of previous receipt. First receipt in chain has null previous hash. |
+| P1-10 | Receipt chain is append-only | Receipts cannot be modified or deleted after creation. |
+| P1-11 | Receipt chain is deterministic | Same inputs replay to the same decision and receipt (excluding timestamp). |
+| P1-12 | validate_governance() returns PERMIT when no governance slots populated | Given a model with no governance slots populated in the DM root, validate_governance returns decision=PERMIT, has_governance=False. |
+| P1-13 | PyPI package published | `pip install sdcgovernance` installs the library with model_inspector and receipts functional. |
 
 ### Test Strategy
 
-- Test models with: no governance, workflow only, attestation only, provenance only, all dimensions, custom components with correct vocabulary bindings, custom components with wrong bindings.
+- Test DM models with: no governance slots populated, workflow only, attestation only, audit only, all governance slots, mixed combinations.
+- Test each DMType governance slot individually: workflow (ClusterType with sub-clusters), Audit (AuditType with required system-id and timestamp), attestation (AttestationType with pending flag), Participation (with function constraints).
+- Test vocabulary bindings: components with correct SCXML/PROV-O/VC/DPV bindings vs components without bindings vs components with wrong bindings.
 - Test receipt chain: create 3+ receipts, verify hash chain integrity, verify append-only constraint, verify deterministic replay.
-- Test that models from Default project and custom projects are discovered identically when vocabulary bindings match.
+- Test that custom models with the same DMType governance slots populated work identically to Default project models.
 
 ### Deliverables
 
@@ -107,16 +121,18 @@ No Django. No web framework. Pure Python.
 
 ## 8. Phase 2: GovernanceEngine + Workflow Validation
 
-**Goal**: Validate workflow transitions in instances against the cluster tree defined in the model. Establish the GovernanceEngine advisory API.
+**Goal**: Validate workflow transitions in instances against the cluster tree defined in `DM.workflow`. Establish the GovernanceEngine advisory API.
+
+**Implementation context**: `DM.workflow` is a ClusterType (0..1). Its sub-clusters define valid paths. Each sub-cluster contains XdOrdinal components defining sequenced states. `DM.current-state` (xs:string, 0..1) carries the current workflow position in the instance.
 
 ### Requirements
 
 | ID | Requirement | Acceptance Criteria |
 |---|---|---|
-| P2-01 | GovernanceEngine wraps model_inspector and validation modules | GovernanceEngine(schema_path) initializes with model inspection results cached. |
-| P2-02 | Workflow cluster tree extraction | Given a Workflow cluster with 2 sub-clusters (branching paths), engine extracts both paths with their XdOrdinal sequences. |
-| P2-03 | Ordinal adjacency validation | Given current state at ordinal position N, engine validates that target state is at ordinal position N+1 in at least one valid path. |
-| P2-04 | Component reuse across paths | Given a component (same CUID2) appearing in sub-cluster A and sub-cluster B, engine recognizes it as the same state in both paths. |
+| P2-01 | GovernanceEngine wraps model_inspector and validation modules | GovernanceEngine(schema_path) initializes with model inspection results cached. Reads DM root governance slots once. |
+| P2-02 | Workflow cluster tree extraction from `DM.workflow` | Given a DM.workflow ClusterType with 2 sub-clusters (branching paths), engine extracts both paths with their XdOrdinal sequences. |
+| P2-03 | Ordinal adjacency validation | Given `DM.current-state` at ordinal position N, engine validates that target state is at ordinal position N+1 in at least one valid path within DM.workflow. |
+| P2-04 | Component reuse across paths | Given a component (same CUID2) appearing in sub-cluster A and sub-cluster B of DM.workflow, engine recognizes it as the same state in both paths. |
 | P2-05 | get_allowed_transitions(instance) | Returns list of valid next states from current position, with the path(s) each belongs to. |
 | P2-06 | evaluate_transition(instance, target_state, actor) | Returns PERMIT if transition exists in a valid path, DENY if not, INDETERMINATE if partially valid. Includes receipt. |
 | P2-07 | SCXML vocabulary labels preserved | Workflow states carry SCXML vocabulary labels. These labels are included in transition results and receipts. |
@@ -142,25 +158,36 @@ No Django. No web framework. Pure Python.
 
 ## 9. Phase 3: Attestation + Party/Role Validation
 
-**Goal**: Validate attestation content and party/role constraints in instances.
+**Goal**: Validate `DM.attestation` (AttestationType) content and party/role constraints from `DM.subject` (PartyType), `DM.provider[]` (PartyType), and `DM.Participation[]` (ParticipationType) in instances.
+
+**Implementation context**: AttestationType has one required element (`pending`: xs:boolean) and optional elements for committer (PartyType), proof (XdFileType), reason (XdStringType), committed (xs:dateTime), and view (XdFileType). Party/Role governance draws from three DM root slots: `DM.subject` (PartyType, 0..1) identifies the human subject (patient, customer); `DM.provider[]` (PartyType, 0..*) identifies information sources; `DM.Participation[]` (ParticipationType, 0..*) carries performer (PartyType) and function (XdStringType) - function is the role check target.
 
 ### Requirements
 
 | ID | Requirement | Acceptance Criteria |
 |---|---|---|
-| P3-01 | Attestation validation independent from workflow | Model defines Attestation without Workflow. validate_governance checks attestation only. |
-| P3-02 | Attestation requires party reference and timestamp | Instance with attestation missing party reference returns DENY. Instance with attestation missing timestamp returns DENY. |
-| P3-03 | Attestation follows W3C VC issuer/holder/verifier pattern | Attestation content in instance maps to VC data model structure. |
-| P3-04 | Party/Role constraint validation | Model says role "approver" required. Instance with actor role "approver" returns PERMIT. Instance with actor role "viewer" returns DENY. |
-| P3-05 | Party/Role integrates with evaluate_transition | evaluate_transition checks party/role constraints when the model defines them for the target state. |
-| P3-06 | Attestation and Workflow compose optionally | Model with both Workflow and Attestation validates both. Model with only one validates only that dimension. |
+| P3-01 | Attestation validation independent from workflow | DM.attestation populated without DM.workflow. validate_governance checks attestation only. |
+| P3-02 | Attestation validates `pending` flag | AttestationType.pending=True means attestation is outstanding. Governance can require pending=False (completed) for certain transitions. |
+| P3-03 | Attestation validates `committer` as authority | If model requires committer, instance with AttestationType.committer missing returns DENY. Committer maps to W3C VC issuer. |
+| P3-04 | Attestation validates `committed` timestamp | If model requires committed timestamp, instance with AttestationType.committed missing returns DENY. |
+| P3-05 | Attestation validates `proof` when required | If model requires cryptographic proof, instance with AttestationType.proof missing returns DENY. |
+| P3-06 | Party/Role validates `Participation.function` | DM.Participation[] with ParticipationType.function constrained to "approver". Instance with performer whose function="approver" returns PERMIT. Instance with function="viewer" returns DENY. |
+| P3-07 | Party/Role validates `DM.subject` | When model constrains subject, instance must have DM.subject (PartyType) populated with valid party identity. |
+| P3-08 | Party/Role validates `DM.provider[]` | When model constrains provider, instance must have DM.provider[] (PartyType) populated. Multiple providers validated individually. |
+| P3-09 | Party/Role integrates with evaluate_transition | evaluate_transition checks DM.Participation[].function, DM.subject, and DM.provider constraints when the model defines them for the target state. |
+| P3-10 | Party identity resolved via `PartyType.party-ref` | When party-ref links to external identity system, governance validates the referenced party's role. Applies to subject, provider, and Participation.performer. |
+| P3-11 | Attestation and Workflow compose optionally | DM with both DM.workflow and DM.attestation validates both. DM with only one validates only that dimension. |
 
 ### Test Strategy
 
-- Attestation only (no workflow): valid attestation, missing party, missing timestamp, wrong party reference.
-- Party/Role only: correct role, wrong role, missing role.
-- Combined: workflow transition that requires specific role, workflow transition that does not require attestation.
-- Independence: adding attestation to a model does not change workflow validation results.
+- Attestation only (no workflow): valid attestation with pending=False, pending=True, missing committer, missing committed timestamp, missing proof when required.
+- Party/Role via Participation: ParticipationType.function matching constraint, function not matching, function missing, multiple Participations with mixed roles.
+- Party/Role via subject: DM.subject populated vs missing when model requires it.
+- Party/Role via provider: DM.provider[] populated vs missing, multiple providers with different party-ref links.
+- Combined: workflow transition that requires specific Participation.function, workflow transition that does not require attestation.
+- Independence: adding DM.attestation to a model does not change DM.workflow validation results.
+- AttestationType.reason with coded vocabulary binding vs uncoded.
+- Cross-slot party identity: same PartyType.party-ref appearing in subject, provider, and Participation.performer.
 
 ### Deliverables
 
@@ -177,14 +204,16 @@ No Django. No web framework. Pure Python.
 
 **Goal**: Validate provenance/audit records in instances and generate W3C PROV-O compliant records. Enforce DPV retention policy.
 
+**Implementation context**: `DM.Audit[]` is AuditType (0..*) at a known position in the DMType root. AuditType has two required elements (`system-id`: XdStringType, `timestamp`: xs:dateTime) and two optional elements (`system-user`: PartyType, `location`: ClusterType). PROV-O mapping: system-id -> prov:Entity context, system-user -> prov:Agent, timestamp -> prov:Activity temporal bounds, location -> provenance metadata. DPV retention policy accessed via `DM.acs` vocabulary bindings. External docs use "Provenance"; implementation works with AuditType at the DM root.
+
 ### Requirements
 
 | ID | Requirement | Acceptance Criteria |
 |---|---|---|
-| P4-01 | Provenance and Audit are one dimension | No separate audit validation. All audit requirements handled by provenance module. |
-| P4-02 | Validate required PROV elements | Model requires Agent + Activity + Entity. Instance missing Agent returns DENY. |
-| P4-03 | Validate Activity Streams 2.0 activity types | Model allows only (Create, Update, Accept). Instance with activity type "Delete" returns DENY. |
-| P4-04 | Validate temporal bounds | Model requires startedAtTime and endedAtTime. Instance missing either returns DENY. |
+| P4-01 | Provenance and Audit are one dimension | No separate audit validation. sdcgovernance reads `DM.Audit[]` (AuditType elements) from the DM root. |
+| P4-02 | Validate AuditType required elements | Every AuditType element must have `system-id` (XdStringType) and `timestamp` (xs:dateTime). Instance with Audit record missing either returns DENY. |
+| P4-03 | Validate AuditType.system-user when required by PROV-O bindings | If model requires Agent identification, instance with Audit record missing system-user (PartyType) returns DENY. |
+| P4-04 | Validate Activity Streams 2.0 activity types | Model allows only (Create, Update, Accept). Instance with activity type "Delete" returns DENY. |
 | P4-05 | Retention policy: most recent + hash | Model specifies "most recent only." Instance carries 1 provenance record + SHA-256 hash of previous. Validated. Instance carries 0 records returns DENY. |
 | P4-06 | Retention policy: last N records | Model specifies N=3. Instance carries 3 records + hash. Validated. Instance carries 2 records returns DENY. |
 | P4-07 | Retention policy: full chain | Model specifies full chain. Instance carries complete history. Hash chain verified end to end. |
@@ -194,11 +223,13 @@ No Django. No web framework. Pure Python.
 
 ### Test Strategy
 
-- Each PROV element individually required/missing.
-- Each retention level with correct and incorrect number of records.
-- Hash chain with tampered record in the middle.
-- Activity type filtering with valid and invalid types.
-- RDF/Turtle export and re-import verification.
+- AuditType with and without each element (system-id, system-user, location, timestamp).
+- Multiple DM.Audit[] records - validate each individually.
+- Each retention level with correct and incorrect number of Audit records in instance.
+- Hash chain with tampered Audit record in the middle.
+- Activity type filtering with valid and invalid AS2 types.
+- AuditType.location (ClusterType) populated vs empty.
+- RDF/Turtle export of Audit records as PROV-O and re-import verification.
 
 ### Deliverables
 

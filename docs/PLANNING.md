@@ -231,17 +231,18 @@ MCP (Model Context Protocol) is becoming the standard interface between AI agent
 
 **Step 1: Model Inspection** (`model_inspector.py`)
 
-Read the SDC data model (XSD) and determine which governance components are defined. Governance components are discovered by **vocabulary binding**, not by CUID2 identity. The model inspector looks for components bound to governance standard vocabularies:
+Read the DMType root and check which optional governance slots are populated. Governance components are at **known positions** in the DM root (see [RM_Reference.md](RM_Reference.md)) - not scattered arbitrarily in the model:
 
-- Components bound to **W3C SCXML** vocabulary → Workflow (extract cluster tree with XdOrdinal paths)
-- Components bound to **W3C PROV-O** vocabulary → Provenance/Audit (extract provenance requirements and retention policy)
-- Components bound to **W3C VC Data Model 2.0** vocabulary → Attestation (extract authority requirements)
-- Components bound to **W3C DPV** vocabulary → Retention policy for provenance (how much history the instance carries)
-- Party/Participation components → extract role constraints
+- `DM.workflow` (ClusterType, 0..1) → Workflow dimension. Extract cluster tree with XdOrdinal paths.
+- `DM.current-state` (xs:string, 0..1) → Current workflow position.
+- `DM.Audit[]` (AuditType, 0..*) → Provenance/Audit dimension. Extract provenance requirements.
+- `DM.attestation` (AttestationType, 0..1) → Attestation dimension. Extract authority requirements.
+- `DM.subject` / `DM.provider` / `DM.Participation[]` → Party/Role dimension. Extract role constraints from ParticipationType.function.
+- `DM.acs` (XdLinkType, 0..1) → Access control and DPV retention policy bindings.
 
-This means governance works with any component that has the right vocabulary bindings - Default project components, custom components, or components from any project. The standards are the identification mechanism, not SDC-specific identity. CUID2 gives uniqueness and referential integrity. Vocabulary bindings give semantic discovery.
+**Vocabulary bindings** on the components within these slots confirm which standards they conform to (SCXML labels on workflow XdOrdinals, PROV-O bindings on Audit elements, VC bindings on attestation, DPV bindings on acs). The location is fixed by the RM; the vocabulary binding confirms the semantics. This means custom governance components work identically to Default project components as long as they occupy the correct DM slots and carry the right vocabulary bindings.
 
-If no governance components are defined in the model, return PERMIT. The model author chose not to include governance. That's a valid choice.
+If no governance slots are populated in the DM root, return PERMIT. The model author chose not to include governance. That's a valid choice.
 
 **Step 2: Instance Content Validation**
 
@@ -401,8 +402,17 @@ Governance components are created in SDCStudio and remain part of the Default pr
 
 Audit and Provenance are the same governance dimension in SDC. Both answer the same question: what happened, who did it, when, to what entity. This maps directly to W3C PROV-DM vocabulary (Entity, Activity, Agent, temporal bounds).
 
+**Important implementation note**: In the SDC Reference Model, the underlying component is `sdc4:AuditType` (see [AuditType documentation](https://semanticdatacharter.com/docs/sdc4/sdc4_xsd_Complex_Type_sdc4_AuditType.html)). AuditType provides who/where/when tracking of instances as they move from system to system, with these elements:
+
+- `system-id` (XdStringType, required) - identifier of the system that handled the item → maps to prov:Entity context
+- `system-user` (PartyType, optional) - user/agent who handled the item → maps to prov:Agent
+- `location` (ClusterType, optional) - location of the handling site → provenance metadata
+- `timestamp` (xs:dateTime, required) - when the item was handled → maps to prov:Activity temporal bounds
+
+In external-facing documentation and standards discussions, we use "Provenance" because that is the W3C vocabulary (PROV-O/PROV-DM) and what standards reviewers expect. In implementation, the model component is AuditType. sdcgovernance's model_inspector discovers AuditType components by their vocabulary bindings to PROV-O terms, bridging the SDC RM naming to the W3C standard.
+
 The model defines provenance requirements through two vocabulary bindings:
-- **W3C PROV-O** bindings define which provenance elements are required (Agent, Activity, Entity, temporal bounds) and which W3C Activity Streams 2.0 activity types are valid
+- **W3C PROV-O** bindings on AuditType components define which provenance elements are required (Agent, Activity, Entity, temporal bounds) and which W3C Activity Streams 2.0 activity types are valid
 - **W3C DPV** bindings define the retention policy - how much provenance the instance carries
 
 DPV is already used in the SDC ecosystem for access control (acs on the data model). Using it for provenance retention means practitioners apply one vocabulary they already know to two governance concerns.
@@ -433,7 +443,6 @@ No open design questions remain. All governance dimensions have resolved modelin
 - rdflib (for PROV record generation and RDF export)
 - pyshacl (for SHACL constraint validation in Phase 6)
 - xmlschema or lxml (for XSD model inspection - may reuse sdcvalidator's dependency)
-- No Django dependency. No web framework dependency. Pure Python.
 
 ### Relationship to sdcvalidator
 
