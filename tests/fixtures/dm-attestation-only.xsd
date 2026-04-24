@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+  xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:vc="http://www.w3.org/2007/XMLSchema-versioning"
+  targetNamespace="https://semanticdatacharter.com/ns/sdc4/"
+  vc:minVersion="1.1">
+  <xsd:annotation>
+    <xsd:appinfo>
+      <rdf:RDF>
+        <rdf:Description rdf:about="dm-test-attestation-only">
+          <dc:title>Test Attestation Only</dc:title>
+          <dc:identifier>dm-test-attestation-only</dc:identifier>
+        </rdf:Description>
+      </rdf:RDF>
+    </xsd:appinfo>
+  </xsd:annotation>
+
+  <xsd:include schemaLocation="https://semanticdatacharter.com/ns/sdc4/sdc4.xsd"/>
+
+  <xsd:element name="dm-test-attestation-only" substitutionGroup="sdc4:DM" type="sdc4:mc-test-attestation-only"/>
+  <xsd:complexType name="mc-test-attestation-only">
+    <xsd:annotation>
+      <xsd:appinfo>
+        <rdf:Description rdf:about="sdc4:mc-test-attestation-only">
+          <rdfs:label>Test Attestation Only</rdfs:label>
+        </rdf:Description>
+      </xsd:appinfo>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:restriction base="sdc4:DMType">
+        <xsd:sequence>
+          <xsd:element maxOccurs="1" minOccurs="1" name="dm-label" type="xsd:string" fixed="Test Attestation Only"/>
+          <xsd:element maxOccurs="1" minOccurs="1" name="dm-language" type="xsd:language" fixed="en-US"/>
+          <xsd:element maxOccurs="1" minOccurs="1" name="dm-encoding" type="xsd:string" fixed="utf-8"/>
+          <xsd:element maxOccurs="1" minOccurs="1" name="instance_id" type="xsd:string"/>
+          <xsd:element maxOccurs="1" minOccurs="1" ref="sdc4:ms-test-data-item"/>
+          <xsd:element maxOccurs="1" minOccurs="0" name="attestation" type="sdc4:AttestationType"/>
+        </xsd:sequence>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+</xsd:schema>

@@ -27,8 +27,10 @@ Elements with governance relevance but not primary governance dimensions:
 
 | Element | Type | Cardinality | Governance Relevance |
 |---|---|---|---|
-| `instance_id` | xs:string | 0..1 | **Receipt chain identity** - globally unique ID (UUID recommended). Receipts reference instance_id to verify provenance trail belongs to the correct instance lineage. |
+| `instance_id` | xs:string | **1..1** | **Receipt chain identity** - mandatory, globally unique CUID2 identifier. Receipts reference instance_id to verify provenance trail belongs to the correct instance lineage. |
 | `instance_version` | xs:string | 0..1 | **Receipt chain versioning** - paired with instance_id. Provenance chain tracks which version each governance decision applied to. |
+| `source_instance_id` | xs:string | 0..1 | **Source system lineage** - identifier of the data instance in the originating source system (e.g., Epic, SAP). Decouples sovereign SDC identity from legacy source identity, enabling auditable data lineage across system boundaries. |
+| `source_version_id` | xs:string | 0..1 | **Source system versioning** - version identifier as it existed in the originating source system. Paired with source_instance_id for complete upstream reference. |
 | `protocol` | XdStringType | 0..1 | **Decision table input** - clinical guideline or operations protocol under which data was captured. A workflow transition may only be valid under certain protocols. Consumed as a condition input by DMN decision tables (Phase 5). |
 | `sdc4:XdLink` | XdLinkType | 0..* | **Governed relationships** - originally intended for model supersession ("this model replaces model X"), but the semantics support any type of related link. See XdLink governance section below. |
 
@@ -184,10 +186,16 @@ The model_inspector does NOT need to search arbitrarily through the model for go
 
 ```
 DM (DMType root)
-├── instance_id (xs:string, 0..1)    → Receipt chain identity
+├── dm-label (xs:string, 1..1)       → Semantic name (fixed per model)
+├── dm-language (xs:language, 1..1)  → Language code
+├── dm-encoding (xs:string, 1..1)    → Character encoding
+├── creation_timestamp (xs:dateTime, 0..1) → Runtime creation instant
+├── instance_id (xs:string, 1..1)    → Receipt chain identity (mandatory, CUID2)
 ├── instance_version (xs:string, 0..1) → Receipt chain versioning
+├── source_instance_id (xs:string, 0..1) → Source system lineage (e.g., Epic, SAP)
+├── source_version_id (xs:string, 0..1) → Source system versioning
 ├── current-state (xs:string, 0..1)  → Current workflow position
-├── Item (ItemType, 1..1)            → Data content (sdcvalidator, not sdcgovernance)
+├── sdc4:Item (ItemType, 1..1)       → Data content (sdcvalidator, not sdcgovernance)
 ├── subject (PartyType, 0..1)        → Party/Role dimension
 ├── provider[] (PartyType, 0..*)     → Party/Role dimension
 ├── Participation[] (0..*)           → Party/Role dimension

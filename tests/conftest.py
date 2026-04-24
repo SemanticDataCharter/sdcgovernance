@@ -1,42 +1,47 @@
 """
-Shared test fixtures for sdc-governance tests.
+Shared test fixtures for sdcgovernance tests.
+
+Test models are minimal XSD files that restrict sdc4:DMType with
+various governance slots populated or absent.
 """
 
 import pytest
+from pathlib import Path
+
+FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
 
 @pytest.fixture
-def sample_entity():
-    """A minimal entity dict for testing provenance and workflow."""
-    return {
-        "id": "cuid2_test_entity_001",
-        "type": "PatientEncounter",
-        "status": "draft",
-        "data": {"bp_systolic": 120, "bp_unit": "mmHg"},
-    }
+def fixtures_dir():
+    """Path to the test fixtures directory."""
+    return FIXTURES_DIR
 
 
 @pytest.fixture
-def sample_workflow():
-    """A minimal workflow definition for testing state machine enforcement."""
-    return {
-        "name": "encounter_workflow",
-        "states": ["draft", "reviewed", "finalized", "amended"],
-        "transitions": [
-            {"from": "draft", "to": "reviewed", "requires_attestation": "reviewer"},
-            {"from": "reviewed", "to": "finalized", "requires_attestation": "approver"},
-            {"from": "finalized", "to": "amended", "requires_attestation": "approver"},
-            {"from": "amended", "to": "reviewed", "requires_attestation": "reviewer"},
-        ],
-    }
+def model_no_governance(fixtures_dir):
+    """XSD model with no governance slots populated."""
+    return fixtures_dir / "dm-no-governance.xsd"
 
 
 @pytest.fixture
-def sample_attestation():
-    """A minimal attestation for testing authority verification."""
-    return {
-        "issuer": "cuid2_user_dr_smith",
-        "role": "reviewer",
-        "timestamp": "2026-04-22T10:00:00Z",
-        "claim": "reviewed_and_approved",
-    }
+def model_all_governance(fixtures_dir):
+    """XSD model with all governance slots populated."""
+    return fixtures_dir / "dm-all-governance.xsd"
+
+
+@pytest.fixture
+def model_workflow_only(fixtures_dir):
+    """XSD model with only workflow governance."""
+    return fixtures_dir / "dm-workflow-only.xsd"
+
+
+@pytest.fixture
+def model_audit_only(fixtures_dir):
+    """XSD model with only audit/provenance governance."""
+    return fixtures_dir / "dm-audit-only.xsd"
+
+
+@pytest.fixture
+def model_attestation_only(fixtures_dir):
+    """XSD model with only attestation governance."""
+    return fixtures_dir / "dm-attestation-only.xsd"

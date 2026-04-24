@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdcgovernance"
-version = "4.0.0"
+version = "4.0.0a1"
 description = "W3C standards-based governance validation for Semantic Data Charter instances"
 license = "Apache-2.0"
 requires-python = ">=3.10"
@@ -15,7 +15,6 @@ authors = [
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -24,6 +23,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 dependencies = [
+    "lxml>=5.0",
     "rdflib>=7.0",
     "pyshacl>=0.25",
 ]
