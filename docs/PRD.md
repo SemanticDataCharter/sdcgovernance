@@ -307,9 +307,9 @@ Vocabulary bindings on the components within these slots confirm which standards
 
 ---
 
-## 13. Phase 7: MCP Server + Examples
+## 13. Phase 7: MCP Server
 
-**Goal**: Expose GovernanceEngine as an MCP server. Ship real, runnable agent examples against CordovaOS.
+**Goal**: Expose GovernanceEngine as an MCP server. Any agent that speaks MCP gets governed behavior without framework-specific integration code.
 
 ### Requirements
 
@@ -323,34 +323,54 @@ Vocabulary bindings on the components within these slots confirm which standards
 | P7-06 | get_governance_status tool | Agent calls tool with schema, receives which governance dimensions the model defines. |
 | P7-07 | evaluate_decision tool | Agent calls tool with instance data and decision table reference, receives DMN evaluation result (PERMIT/DENY/INDETERMINATE) + receipt documenting which rules matched. |
 | P7-08 | Session management | Receipt chain maintained across multiple calls within a session. |
-| P7-09 | CordovaOS example: Beat 5 (The Response) | Runnable agent script that walks through the health officer containment trigger with real MCP calls, real governance components, real PERMIT/DENY decisions. |
-| P7-10 | CordovaOS example: Beat 6 (The Investigation) | Runnable agent script that walks through law enforcement accessing health records across domain boundaries. |
-| P7-11 | CordovaOS example: provenance recording | Runnable agent script that records PROV provenance at every governed transition during the Contagion narrative. |
-| P7-12 | Examples are real implementations | No stubs, no mock APIs. Standards reviewers can clone CordovaOS, start the MCP server, run an example, and watch standards enforced end to end. |
 
 ### Test Strategy
 
 - MCP server starts and responds to tool discovery.
 - Each tool called individually with valid and invalid inputs.
 - Multi-call session: get_allowed -> evaluate -> record_provenance, verify receipt chain continuity.
-- CordovaOS examples run end to end against governance-extended domain models.
 
 ### Deliverables
 
 - `mcp_server.py` - functional
 - CLI entry point registered in pyproject.toml
-- `examples/` directory with 3+ runnable CordovaOS agent scripts
 - Test suite
-- PyPI 4.0.0 GA published
+- PyPI 4.0.0 published
 
 ### Timeline: 2-3 weeks
 
 ---
 
-## 14. CordovaOS Integration
+## 14. Phase 8: CordovaOS Examples
 
-**Prerequisite**: Phase 1-2 complete (alpha).
-**Full integration**: After Phase 7 (GA).
+**Goal**: Ship real, runnable agent examples against CordovaOS that demonstrate governance enforcement end to end.
+
+**Prerequisite**: Phase 7 (MCP Server) complete. CordovaOS governance model components added in SDCStudio.
+
+### Requirements
+
+| ID | Requirement | Acceptance Criteria |
+|---|---|---|
+| P8-01 | CordovaOS example: Beat 5 (The Response) | Runnable agent script that walks through the health officer containment trigger with real MCP calls, real governance components, real PERMIT/DENY decisions. |
+| P8-02 | CordovaOS example: Beat 6 (The Investigation) | Runnable agent script that walks through law enforcement accessing health records across domain boundaries. |
+| P8-03 | CordovaOS example: provenance recording | Runnable agent script that records PROV provenance at every governed transition during the Contagion narrative. |
+| P8-04 | Examples are real implementations | No stubs, no mock APIs. Standards reviewers can clone CordovaOS, start the MCP server, run an example, and watch standards enforced end to end. |
+
+### Test Strategy
+
+- CordovaOS examples run end to end against governance-extended domain models.
+- Each example produces a verifiable receipt chain.
+- Standards reviewer can follow the walkthrough documentation independently.
+
+### Deliverables
+
+- `examples/` directory with 3+ runnable CordovaOS agent scripts
+- Standards reviewer walkthrough documentation
+- CordovaOS governance model components (in SDCStudio Default project)
+
+### Timeline: 2-3 weeks
+
+### CordovaOS Integration Work Items
 
 | Work Item | Description |
 |---|---|
@@ -374,8 +394,9 @@ Vocabulary bindings on the components within these slots confirm which standards
 |---|---|
 | Alpha (Phase 1-2) | model_inspector discovers governance by vocabulary binding. Workflow validation returns correct XACML decisions. Receipt chain is tamper-evident. PyPI alpha published. |
 | Beta (Phase 3-6) | All governance dimensions validate. Provenance retention policy enforced. DMN decision tables evaluate. SHACL cross-entity constraints work. |
-| GA (Phase 7) | MCP server exposes all tools. CordovaOS examples run end to end. Standards reviewers can evaluate compliance on running system. PyPI 4.0.0 published. |
-| Market validation | W3C/OASIS standards authors review and file issues. At least one external system consumes governance via MCP. CordovaOS governance demo shown to prospects. |
+| GA (Phase 7) | MCP server exposes all tools. Any agent that speaks MCP can consume governance. PyPI 4.0.0 published. |
+| Standards review (Phase 8) | CordovaOS examples run end to end. Standards reviewers can evaluate compliance on running system. W3C/OASIS authors invited to review. |
+| Market validation | At least one external system consumes governance via MCP. CordovaOS governance demo shown to prospects. |
 
 ## 17. Risks
 
