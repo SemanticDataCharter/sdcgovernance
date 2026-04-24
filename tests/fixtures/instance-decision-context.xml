@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test instance with protocol and XdLink for decision table context -->
+<sdc4:dm-test xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/">
+  <dm-label>Test Decision Context</dm-label>
+  <dm-language>en-US</dm-language>
+  <dm-encoding>utf-8</dm-encoding>
+  <instance_id>cuid2-test-decision-001</instance_id>
+  <instance_version>1</instance_version>
+  <current-state>review</current-state>
+  <protocol>
+    <label>Protocol</label>
+    <xdstring-value>HIPAA-compliant</xdstring-value>
+  </protocol>
+  <sdc4:XdLink>
+    <label>Supersedes</label>
+    <link>https://models.example.com/dm-old-version</link>
+    <relation>replaces</relation>
+  </sdc4:XdLink>
+  <sdc4:XdLink>
+    <label>Evidence</label>
+    <link>https://evidence.example.com/doc-123</link>
+    <relation>evidence</relation>
+  </sdc4:XdLink>
+</sdc4:dm-test>
