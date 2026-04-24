@@ -29,9 +29,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mcp = [
-    "mcp>=1.0",
-]
 dev = [
     "pytest>=8.0",
     "pytest-cov",
@@ -41,6 +38,9 @@ dev = [
 Homepage = "https://semanticdatacharter.com"
 Repository = "https://github.com/SemanticDataCharter/sdcgovernance"
 Issues = "https://github.com/SemanticDataCharter/sdcgovernance/issues"
+
+[project.scripts]
+sdcgovernance = "sdcgovernance.mcp_server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
