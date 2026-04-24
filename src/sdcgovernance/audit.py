@@ -1,12 +1,12 @@
 """
-Audit content validation for SDC governance.
+Audit is merged with Provenance - they are the same governance dimension in SDC.
 
-Validates that the audit records in the XML instance meet the
-requirements defined by the Audit components in the SDC data model.
+Both answer: what happened, who did it, when, to what entity.
+This maps directly to W3C PROV-DM vocabulary.
+
+All audit/provenance validation logic lives in provenance.py.
+This file exists only to document the merge decision.
 """
 
-# TODO: Phase 4 implementation
-# - Extract audit requirements from model (via model_inspector)
-# - Validate audit content presence and format in instance
-# - Verify required audit fields are populated
-# - Return validation result with details
+# Audit and Provenance merged in provenance.py
+# See PLANNING.md "Provenance/Audit Modeling (resolved)" for rationale

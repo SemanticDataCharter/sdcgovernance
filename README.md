@@ -1,8 +1,10 @@
 # sdcgovernance
 
-W3C standards-based governance validation for Semantic Data Charter instances.
+W3C standards-based governance advisory engine for Semantic Data Charter instances.
 
 A Python library that validates governance content in XML data instances against governance components defined in the SDC data model. If the model defines governance (workflow, attestation, party/role, provenance, audit), the instance must carry that content - and this library validates it.
+
+Returns decisions using OASIS XACML semantics: PERMIT, DENY, or INDETERMINATE.
 
 No framework dependency. No middleware. A function call.
 
@@ -17,53 +19,82 @@ from sdcgovernance import validate_governance
 
 result = validate_governance("model.xsd", "instance.xml")
 
-print(result.decision)      # EXECUTE, REFUSE, ESCALATE, or SKIP
+print(result.decision)      # PERMIT, DENY, or INDETERMINATE
 print(result.has_governance) # True if model defines governance components
 print(result.errors)         # list of governance validation errors
 print(result.receipt)        # tamper-evident decision receipt
 ```
 
-If the model does not define governance components, the result is `SKIP` - no governance validation needed.
+If the model does not define governance components, the result is `PERMIT` - no governance to enforce.
 
-## The Two-Layer Validation Model
+## Two Independent Libraries
+
+sdcvalidator and sdcgovernance are separate, independent libraries. There is no hook, no chaining, no automatic invocation of one from the other.
 
 ```
-Layer 1: sdcvalidator (structural)
+sdcvalidator (structural validation)
     Does the instance conform to the XSD schema?
+    Single-pass. Instance in, pass/fail out.
 
-Layer 2: sdcgovernance (governance)
+sdcgovernance (governance advisory)
     Does the model define governance components?
     If yes: does the instance carry valid governance content?
+    Conversational. Agents query multiple times during a workflow.
 ```
 
-If `sdcgovernance` is installed alongside `sdcvalidator`, governance validation is called automatically after structural validation passes. No code changes required.
+Both libraries read the schema from the instance. Agents call each one independently, at different points in a workflow, in whatever order the operational logic requires. A single workflow may involve multiple calls to both libraries.
 
 ## What Gets Validated
 
 | Component | What the model defines | What the instance must carry |
 |---|---|---|
-| **Workflow** | States, transitions, entry conditions | Current state, proposed transition, satisfied conditions |
+| **Workflow** | Cluster tree of valid paths (sub-clusters with XdOrdinal states) | Current XdOrdinal state, proposed transition validated against ordinal adjacency in valid paths |
 | **Attestation** | Authority requirements per action | Attestation with correct role, party reference, timestamp |
 | **Party/Role** | Role constraints for governed actions | Acting party identification with required role |
-| **Provenance** | Provenance requirements | PROV-formatted record of action, agent, entity, temporal bounds |
-| **Audit** | Audit record requirements | Audit content meeting the model's format and field requirements |
+| **Provenance/Audit** | Provenance requirements (PROV-O) + retention policy (DPV) | PROV-formatted record(s) per retention policy: most recent + hash, last N, or full chain |
 
-## Enforcement Decisions
+Governance components are discovered by **vocabulary binding**, not by CUID2 identity. Any component bound to the right standard vocabulary (PROV-O, SCXML, VC, DPV) is recognized as a governance component - whether it comes from the Default project or was custom-built.
+
+## Enforcement Decisions (OASIS XACML)
 
 | Decision | Meaning |
 |---|---|
-| **EXECUTE** | All governance checks pass - instance is valid |
-| **REFUSE** | One or more governance checks fail - instance is rejected |
-| **ESCALATE** | Governance checks partially pass - requires review (configurable) |
-| **SKIP** | Model does not define governance components - no validation needed |
+| **PERMIT** | All governance checks pass - action is authorized |
+| **DENY** | One or more governance checks fail - action is refused |
+| **INDETERMINATE** | Governance checks partially pass - requires review (configurable) |
 
 Every decision produces a W3C PROV record and a SHA-256 hash-chained receipt.
 
+What happens after the decision is the agent's responsibility. sdcgovernance issues the decision and the receipt. The operational response - routing, escalation, notification, halting - is customer business logic that varies per implementation.
+
+## Two Interfaces, One Engine
+
+**Python API** - for direct integration:
+
+```python
+from sdcgovernance import validate_governance
+
+result = validate_governance("model.xsd", "instance.xml")
+```
+
+**MCP Server** - for any agent framework:
+
+```bash
+sdcgovernance serve --mcp
+```
+
+The MCP server exposes governance as tools that agents call. The agent runs the loop. sdcgovernance advises.
+
 ## Standards
 
-- **W3C PROV** (PROV-O, PROV-DM) - provenance records
+- **OASIS XACML** - decision semantics (PERMIT/DENY/INDETERMINATE)
+- **SDC native structure + W3C SCXML vocabulary** - workflow sequencing via XdOrdinal components in sub-cluster paths, labeled using SCXML semantics
+- **W3C PROV** (PROV-O, PROV-DM) - provenance/audit records (one governance dimension)
+- **W3C Data Privacy Vocabulary (DPV)** - provenance retention policy (same vocabulary used for SDC access control)
+- **W3C Activity Streams 2.0** - activity/event type vocabulary
 - **W3C Verifiable Credentials Data Model 2.0** - attestation authority pattern
 - **W3C SHACL** - cross-entity constraint validation
+- **OMG DMN** - decision tables for complex governance rules
 - **SHA-256** - tamper-evident hash chains for decision receipts
 
 ## Architecture
@@ -71,14 +102,16 @@ Every decision produces a W3C PROV record and a SHA-256 hash-chained receipt.
 ```
 src/sdcgovernance/
 ├── __init__.py          # Public API: validate_governance()
+├── engine.py            # GovernanceEngine - the decision engine agents query
 ├── model_inspector.py   # Inspect SDC model for governance components
 ├── workflow.py          # Validate workflow transitions in instance
 ├── attestation.py       # Validate attestation content in instance
 ├── party_role.py        # Validate party/role constraints in instance
-├── provenance.py        # Validate provenance records + PROV generation
-├── audit.py             # Validate audit content in instance
+├── provenance.py        # Validate provenance/audit records + PROV generation + DPV retention policy
+├── decision.py          # DMN decision table evaluation
 ├── receipts.py          # Decision receipt chain (hash-chained)
-└── shacl_runtime.py     # SHACL cross-entity constraint validation
+├── shacl_runtime.py     # SHACL cross-entity constraint validation
+└── mcp_server.py        # MCP server exposing governance tools to any agent
 ```
 
 Pure Python. No Django. No middleware. No web framework dependency.
@@ -91,10 +124,10 @@ pip install sdcgovernance
 
 ## Integration with SDC Ecosystem
 
-- **sdcvalidator** - structural validation (Layer 1). If sdcgovernance is installed, sdcvalidator calls it automatically after structural validation passes.
+- **sdcvalidator** - independent structural validation library. Agents call it separately from sdcgovernance, at different points in a workflow.
 - **SDCStudio** - models governance components visually. The XSD output includes governance definitions that sdcgovernance validates against.
 - **AppGen** - generated applications can call `validate_governance()` at data entry boundaries.
-- **SDC Agents** - agents can invoke governance validation as a tool call during agentic workflows.
+- **SDC Agents** - reference implementations showing how to wire governance MCP tools into agentic workflows using Default project governance models. Customer agents connect to the same MCP server and use the tools however they want.
 
 ## Status
 
