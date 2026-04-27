@@ -158,9 +158,9 @@ class TestDecisionTableFirstHit:
         result = evaluate_decision_table(risk_table, {"risk_score": 9})
         assert result.matched_rules == [0]
 
-    def test_no_match_indeterminate(self, risk_table):
+    def test_no_match_not_applicable(self, risk_table):
         result = evaluate_decision_table(risk_table, {"risk_score": None})
-        assert result.decision == Decision.INDETERMINATE
+        assert result.decision == Decision.NOT_APPLICABLE
         assert result.matched_rules == []
 
 
@@ -193,7 +193,7 @@ class TestDecisionTableUnique:
 
     def test_unique_no_match(self, status_table):
         result = evaluate_decision_table(status_table, {"status": "unknown"})
-        assert result.decision == Decision.INDETERMINATE
+        assert result.decision == Decision.NOT_APPLICABLE
 
     def test_unique_multiple_match_error(self):
         """UNIQUE policy with overlapping rules produces INDETERMINATE + error."""

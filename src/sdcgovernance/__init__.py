@@ -36,8 +36,10 @@ from sdcgovernance.model_inspector import GovernanceModel, inspect_model
 from sdcgovernance.receipts import (
     Decision,
     GovernanceResult,
+    Obligation,
     Receipt,
     ReceiptChain,
+    StatusCode,
 )
 
 __all__ = [
@@ -47,8 +49,10 @@ __all__ = [
     "GovernanceEngine",
     "GovernanceModel",
     "GovernanceResult",
+    "Obligation",
     "Receipt",
     "ReceiptChain",
+    "StatusCode",
 ]
 
 
@@ -77,8 +81,9 @@ def validate_governance(
 
     if not model.has_governance:
         return GovernanceResult(
-            decision=Decision.PERMIT,
+            decision=Decision.NOT_APPLICABLE,
             has_governance=False,
+            status_code=StatusCode.OK,
             dimensions_validated=model.active_dimensions,
         )
 

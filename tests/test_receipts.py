@@ -20,6 +20,9 @@ class TestDecisionEnum:
     def test_indeterminate(self):
         assert Decision.INDETERMINATE.value == "INDETERMINATE"
 
+    def test_not_applicable(self):
+        assert Decision.NOT_APPLICABLE.value == "NOT_APPLICABLE"
+
 
 class TestReceipt:
     """Individual receipt creation and hashing."""
@@ -168,12 +171,12 @@ class TestReceiptChain:
 class TestGovernanceResult:
     """GovernanceResult data structure."""
 
-    def test_permit_no_governance(self):
+    def test_not_applicable_no_governance(self):
         result = GovernanceResult(
-            decision=Decision.PERMIT,
+            decision=Decision.NOT_APPLICABLE,
             has_governance=False,
         )
-        assert result.decision == Decision.PERMIT
+        assert result.decision == Decision.NOT_APPLICABLE
         assert result.has_governance is False
         assert result.errors == []
 

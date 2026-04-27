@@ -1,4 +1,4 @@
-# Receipt Chain Tests - OASIS XACML Compliance
+# Receipt Chain Tests - XACML Decision Values + SDC Tamper Evidence
 
 **Standard**: OASIS XACML (eXtensible Access Control Markup Language)
 **Module**: `sdcgovernance/receipts.py`

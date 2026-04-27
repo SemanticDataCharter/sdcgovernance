@@ -180,7 +180,7 @@ class TestValidateGovernance:
         data = call_tool("validate_governance", {
             "schema_path": str(FIXTURES / "dm-no-governance.xsd"),
         })
-        assert data["decision"] == "PERMIT"
+        assert data["decision"] == "NOT_APPLICABLE"
         assert data["has_governance"] is False
 
 
@@ -254,7 +254,7 @@ class TestEvaluateDecision:
         })
         assert data["decision"] == "PERMIT"
 
-    def test_no_match_indeterminate(self):
+    def test_no_match_not_applicable(self):
         table = {
             "name": "impossible",
             "hit_policy": "FIRST",
@@ -266,7 +266,7 @@ class TestEvaluateDecision:
             "instance_path": str(FIXTURES / "instance-decision-context.xml"),
             "table_json": json.dumps(table),
         })
-        assert data["decision"] == "INDETERMINATE"
+        assert data["decision"] == "NOT_APPLICABLE"
 
 
 class TestParseDecisionTable:

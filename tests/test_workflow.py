@@ -278,13 +278,13 @@ class TestGovernanceEngine:
         assert result.decision == Decision.INDETERMINATE
 
     def test_evaluate_no_governance(self, engine_no_governance, linear_tree):
-        """Model without workflow governance returns PERMIT."""
+        """Model without workflow governance returns NOT_APPLICABLE."""
         result = engine_no_governance.evaluate_transition(
             current_state="draft",
             target_state="review",
             workflow_tree=linear_tree,
         )
-        assert result.decision == Decision.PERMIT
+        assert result.decision == Decision.NOT_APPLICABLE
         assert result.has_governance is False
 
     def test_receipt_chain_accumulates(self, engine, linear_tree):

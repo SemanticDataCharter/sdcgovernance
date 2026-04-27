@@ -155,7 +155,7 @@ def evaluate_decision_table(
 
     if not matched:
         return DecisionResult(
-            decision=Decision.INDETERMINATE,
+            decision=Decision.NOT_APPLICABLE,
             reasoning=f"No rules matched in decision table '{table.name}'",
         )
 

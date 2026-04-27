@@ -323,6 +323,7 @@ def _parse_decision_table(data: dict[str, Any]) -> DecisionTable:
         "PERMIT": Decision.PERMIT,
         "DENY": Decision.DENY,
         "INDETERMINATE": Decision.INDETERMINATE,
+        "NOT_APPLICABLE": Decision.NOT_APPLICABLE,
     }
     policy_map = {
         "FIRST": HitPolicy.FIRST,

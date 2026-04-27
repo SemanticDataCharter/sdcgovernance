@@ -1,13 +1,20 @@
 """
 Tamper-evident decision receipt chain for SDC governance.
 
-Every enforcement decision (PERMIT, DENY, INDETERMINATE) produces a
-receipt containing the decision, reasoning, PROV record, instance identity,
-and a SHA-256 hash linking to the previous receipt. The chain is
-deterministic: same input replays to the same decision.
+Every enforcement decision produces a receipt containing the decision,
+reasoning, status code, obligations, instance identity, and a SHA-256
+hash linking to the previous receipt.
+
+Decision values follow OASIS XACML 3.0 Section 5.53 (all four values):
+PERMIT, DENY, INDETERMINATE, NOT_APPLICABLE.
 
 Receipts reference DM.instance_id and DM.instance_version to bind the
 provenance trail to the correct instance lineage.
+
+Note on determinism: the decision is deterministic (same inputs produce
+the same decision). The receipt_hash includes a timestamp and is therefore
+unique per evaluation. This is intentional for tamper evidence but means
+the hash itself is not replayable.
 """
 
 from __future__ import annotations
@@ -21,10 +28,56 @@ from typing import Any
 
 
 class Decision(Enum):
-    """OASIS XACML decision semantics."""
+    """
+    OASIS XACML 3.0 Section 5.53 decision values.
+
+    All four normative values per XACML 3.0 Section 7.17:
+    - PERMIT: all governance checks pass, action is authorized
+    - DENY: one or more governance checks fail, action is refused
+    - INDETERMINATE: evaluation error (missing attribute, processing
+      failure, unsupported function). The evaluator could not reach
+      a definitive PERMIT or DENY.
+    - NOT_APPLICABLE: the policy did not apply to the request (no
+      governance components defined, no rules matched, policy target
+      did not match). Distinct from INDETERMINATE - NOT_APPLICABLE
+      means the policy was evaluated successfully but simply does
+      not cover this case.
+    """
     PERMIT = "PERMIT"
     DENY = "DENY"
     INDETERMINATE = "INDETERMINATE"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+
+
+class StatusCode(Enum):
+    """
+    XACML 3.0 Section 10.2.4 standard status codes.
+
+    Machine-readable identifiers for why a decision was reached,
+    especially for INDETERMINATE and NOT_APPLICABLE outcomes.
+    """
+    OK = "urn:oasis:names:tc:xacml:1.0:status:ok"
+    MISSING_ATTRIBUTE = "urn:oasis:names:tc:xacml:1.0:status:missing-attribute"
+    SYNTAX_ERROR = "urn:oasis:names:tc:xacml:1.0:status:syntax-error"
+    PROCESSING_ERROR = "urn:oasis:names:tc:xacml:1.0:status:processing-error"
+
+
+@dataclass
+class Obligation:
+    """
+    A policy-attached side effect per XACML 3.0 Section 5.34/5.39.
+
+    Obligations are actions that MUST be performed in conjunction with
+    the enforcement of a decision. If the PEP (agent) cannot fulfill
+    an obligation, it MUST NOT permit access (XACML 3.0 Section 7.2.1).
+
+    In ACAL 1.0, Obligations and Advice are unified into Notice with
+    an is_obligation flag.
+    """
+    obligation_id: str = ""
+    description: str = ""
+    is_obligation: bool = True  # True = must fulfill; False = advice (may fulfill)
+    attributes: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -36,7 +89,9 @@ class GovernanceResult:
     """
     decision: Decision
     has_governance: bool = True
+    status_code: StatusCode = StatusCode.OK
     errors: list[str] = field(default_factory=list)
+    obligations: list[Obligation] = field(default_factory=list)
     receipt: Receipt | None = None
     dimensions_validated: dict[str, Any] = field(default_factory=dict)
 
@@ -46,12 +101,20 @@ class Receipt:
     """
     Tamper-evident decision receipt.
 
-    Each receipt is a PROV-formatted record of a governance decision,
-    hash-chained to the previous receipt for tamper evidence.
+    Each receipt records a governance decision with hash-chained
+    tamper evidence. The receipt embeds an XACML decision value
+    and status code but is an SDC-specific structure, not an
+    XACML ResultType.
     """
-    # Decision
+    # Decision (XACML 3.0 Section 5.53 - all four values)
     decision: Decision
     reasoning: str = ""
+
+    # Status (XACML 3.0 Section 5.54-5.55)
+    status_code: StatusCode = StatusCode.OK
+
+    # Obligations / Advice (XACML 3.0 Section 5.34/5.35)
+    obligations: list[Obligation] = field(default_factory=list)
 
     # Instance identity (from DM root)
     instance_id: str = ""
@@ -82,11 +145,14 @@ class Receipt:
         Compute SHA-256 hash of the receipt content.
 
         The hash covers all fields except receipt_hash itself.
-        Timestamp IS included - each receipt is unique in time.
+        Timestamp IS included for tamper evidence - this means the
+        hash is unique per evaluation (not replayable), but the
+        decision value is deterministic.
         """
         content = {
             "decision": self.decision.value,
             "reasoning": self.reasoning,
+            "status_code": self.status_code.value,
             "instance_id": self.instance_id,
             "instance_version": self.instance_version,
             "timestamp": self.timestamp,
@@ -105,6 +171,8 @@ class Receipt:
         """Serialize receipt to a dictionary."""
         d = asdict(self)
         d["decision"] = self.decision.value
+        d["status_code"] = self.status_code.value
+        d["obligations"] = [asdict(o) for o in self.obligations]
         return d
 
 
@@ -145,6 +213,8 @@ class ReceiptChain:
         instance_version: str = "",
         dimensions_checked: list[str] | None = None,
         errors: list[str] | None = None,
+        status_code: StatusCode = StatusCode.OK,
+        obligations: list[Obligation] | None = None,
     ) -> Receipt:
         """
         Create a new receipt and append it to the chain.
@@ -162,6 +232,8 @@ class ReceiptChain:
             previous_hash=self.last_hash,
             dimensions_checked=dimensions_checked or [],
             errors=errors or [],
+            status_code=status_code,
+            obligations=obligations or [],
         )
         self._receipts.append(receipt)
         return receipt

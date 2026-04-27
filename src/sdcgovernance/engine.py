@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from sdcgovernance.model_inspector import GovernanceModel, inspect_model
-from sdcgovernance.receipts import Decision, GovernanceResult, ReceiptChain
+from sdcgovernance.receipts import Decision, GovernanceResult, ReceiptChain, StatusCode
 from sdcgovernance.workflow import (
     WorkflowTree,
     extract_workflow_from_instance,
@@ -129,15 +129,17 @@ class GovernanceEngine:
         """
         if not self._model.workflow.present:
             receipt = self._receipt_chain.append(
-                decision=Decision.PERMIT,
+                decision=Decision.NOT_APPLICABLE,
                 reasoning="Model does not define workflow governance",
                 instance_id=instance_id,
                 instance_version=instance_version,
                 dimensions_checked=["workflow"],
+                status_code=StatusCode.OK,
             )
             return GovernanceResult(
-                decision=Decision.PERMIT,
+                decision=Decision.NOT_APPLICABLE,
                 has_governance=False,
+                status_code=StatusCode.OK,
                 receipt=receipt,
                 dimensions_validated={"workflow": False},
             )
@@ -150,9 +152,11 @@ class GovernanceEngine:
                 instance_version=instance_version,
                 dimensions_checked=["workflow"],
                 errors=["No workflow tree available for validation"],
+                status_code=StatusCode.MISSING_ATTRIBUTE,
             )
             return GovernanceResult(
                 decision=Decision.INDETERMINATE,
+                status_code=StatusCode.MISSING_ATTRIBUTE,
                 errors=["No workflow tree available for validation"],
                 receipt=receipt,
                 dimensions_validated={"workflow": True},
