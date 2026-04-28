@@ -24,7 +24,7 @@ DM.workflow (ClusterType)
 
 **Ordinal adjacency**: A transition is valid only if the target state is at ordinal position N+1 from the current state in at least one valid path. Skipping states or reversing is DENY.
 
-**SCXML vocabulary**: Labels on XdOrdinal components and clusters use W3C SCXML terms for interoperability.
+**SCXML concepts**: Workflow states borrow the concepts of state and transition from automata theory, as specified in W3C SCXML.
 
 ## Extracting Workflow from an Instance
 

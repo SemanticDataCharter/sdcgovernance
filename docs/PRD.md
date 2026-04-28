@@ -47,7 +47,7 @@ SDC instances carry their own meaning. sdcgovernance extends this to enforcement
 |---|---|---|
 | Provenance / Audit | W3C PROV-O / PROV-DM | Provenance records follow PROV vocabulary. Audit and Provenance are one dimension. |
 | Provenance retention | W3C Data Privacy Vocabulary (DPV) | Retention policies bound using DPV terms. Same vocabulary used for SDC access control. |
-| Workflow sequencing | SDC native structure + W3C SCXML vocabulary | XdOrdinal components in cluster tree paths, labeled with SCXML semantics. |
+| Workflow sequencing | SDC native structure + W3C SCXML concepts | XdOrdinal components in cluster tree paths, borrowing the concepts of state and transition from automata theory as specified in W3C SCXML. |
 | Attestation authority | W3C VC Data Model 2.0 | Issuer/holder/verifier pattern for authority assertions. |
 | Constraint validation | W3C SHACL | Cross-entity constraints delegated to pyshacl. |
 | Activity/event types | W3C Activity Streams 2.0 | Provenance activity types (Create, Update, Accept, Reject, etc.). |
@@ -79,14 +79,14 @@ SDC instances carry their own meaning. sdcgovernance extends this to enforcement
 - `DM.subject` / `DM.provider` / `DM.Participation[]` - Party/Role dimension
 - `DM.acs` (XdLinkType, 0..1) - Access control and retention policy (DPV bindings)
 
-Vocabulary bindings on the components within these slots confirm which standards they conform to (SCXML, PROV-O, VC, DPV). The location is fixed by the RM; the vocabulary binding confirms the semantics.
+Vocabulary bindings on the components within these slots confirm which standards they conform to (SCXML state/transition concepts, PROV-O, VC, DPV). The location is fixed by the RM; the vocabulary binding confirms the semantics.
 
 ### Requirements
 
 | ID | Requirement | Acceptance Criteria |
 |---|---|---|
 | P1-01 | model_inspector reads DM root and detects populated governance slots | Given a model with `DM.workflow` populated, returns workflow=True. Given a model with no governance slots populated, returns all dimensions as False. |
-| P1-02 | model_inspector extracts Workflow cluster tree from `DM.workflow` | Given a DM.workflow ClusterType with 2 sub-clusters containing SCXML-bound XdOrdinal components, model_inspector extracts both paths with their ordinal sequences. |
+| P1-02 | model_inspector extracts Workflow cluster tree from `DM.workflow` | Given a DM.workflow ClusterType with 2 sub-clusters containing XdOrdinal components using SCXML state/transition concepts, model_inspector extracts both paths with their ordinal sequences. |
 | P1-03 | model_inspector detects Attestation from `DM.attestation` | Given a DM with AttestationType populated (pending, committer, reason, proof), model_inspector extracts authority requirements. Vocabulary bindings to VC terms confirm standard compliance. |
 | P1-04 | model_inspector detects Provenance/Audit from `DM.Audit[]` | Given a DM with AuditType elements (system-id, system-user, location, timestamp), model_inspector extracts provenance requirements. Vocabulary bindings to PROV-O terms confirm standard compliance. |
 | P1-05 | model_inspector extracts retention policy from `DM.acs` DPV bindings | Given a DM with acs linked to DPV-bound retention components, model_inspector extracts retention level (most recent + hash, last N, full chain). |
@@ -104,7 +104,7 @@ Vocabulary bindings on the components within these slots confirm which standards
 
 - Test DM models with: no governance slots populated, workflow only, attestation only, audit only, all governance slots, mixed combinations.
 - Test each DMType governance slot individually: workflow (ClusterType with sub-clusters), Audit (AuditType with required system-id and timestamp), attestation (AttestationType with pending flag), Participation (with function constraints).
-- Test vocabulary bindings: components with correct SCXML/PROV-O/VC/DPV bindings vs components without bindings vs components with wrong bindings.
+- Test vocabulary bindings: components with correct SCXML-concept/PROV-O/VC/DPV bindings vs components without bindings vs components with wrong bindings.
 - Test receipt chain: create 3+ receipts, verify hash chain integrity, verify append-only constraint, verify deterministic replay.
 - Test that custom models with the same DMType governance slots populated work identically to Default project models.
 
@@ -136,7 +136,7 @@ Vocabulary bindings on the components within these slots confirm which standards
 | P2-04 | Component reuse across paths | Given a component (same CUID2) appearing in sub-cluster A and sub-cluster B of DM.workflow, engine recognizes it as the same state in both paths. |
 | P2-05 | get_allowed_transitions(instance) | Returns list of valid next states from current position, with the path(s) each belongs to. |
 | P2-06 | evaluate_transition(instance, target_state, actor) | Returns PERMIT if transition exists in a valid path, DENY if not, INDETERMINATE if partially valid. Includes receipt. |
-| P2-07 | SCXML vocabulary labels preserved | Workflow states carry SCXML vocabulary labels. These labels are included in transition results and receipts. |
+| P2-07 | SCXML state/transition concepts preserved | Workflow states carry labels consistent with SCXML state and transition concepts. These labels are included in transition results and receipts. |
 | P2-08 | Invalid transition produces DENY with details | DENY result includes: current state, attempted target, valid alternatives, which paths were checked. |
 
 ### Test Strategy

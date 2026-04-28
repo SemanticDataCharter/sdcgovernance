@@ -88,7 +88,7 @@ The MCP server exposes governance as tools that agents call. The agent runs the 
 ## Standards
 
 - **OASIS XACML** - decision semantics (PERMIT/DENY/INDETERMINATE)
-- **SDC native structure + W3C SCXML vocabulary** - workflow sequencing via XdOrdinal components in sub-cluster paths, labeled using SCXML semantics
+- **SDC native structure + W3C SCXML concepts** - workflow sequencing via XdOrdinal components in sub-cluster paths, borrowing the concepts of state and transition from automata theory as specified in W3C SCXML
 - **W3C PROV** (PROV-O, PROV-DM) - provenance/audit records (one governance dimension)
 - **W3C Data Privacy Vocabulary (DPV)** - provenance retention policy (same vocabulary used for SDC access control)
 - **W3C Activity Streams 2.0** - activity/event type vocabulary

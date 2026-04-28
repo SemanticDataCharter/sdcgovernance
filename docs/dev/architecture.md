@@ -101,7 +101,7 @@ All tools return `{"content": [{"type": "text", "text": "...JSON..."}]}`. Consis
 ## Design Principles
 
 1. **Known positions, not search.** Governance slots are at fixed DMType positions.
-2. **Standards vocabulary, not custom.** XACML decisions, SCXML labels, PROV-O records.
+2. **Standards concepts, not custom.** XACML decisions, SCXML state/transition concepts, PROV-O records.
 3. **Independent dimensions.** Adding attestation doesn't affect workflow validation.
 4. **Advise, don't enforce.** The engine returns decisions. The agent acts on them.
 5. **Deterministic.** Same inputs produce same outputs. Required for Web3.

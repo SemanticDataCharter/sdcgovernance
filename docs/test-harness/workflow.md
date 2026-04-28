@@ -1,13 +1,13 @@
-# Workflow Tests - W3C SCXML Vocabulary Compliance
+# Workflow Tests - W3C SCXML Concepts Compliance
 
-**Standard**: W3C SCXML (State Chart XML) - vocabulary only
+**Standard**: W3C SCXML (State Chart XML) - concepts of state and transition only
 **Structure**: SDC native (XdOrdinal components in ClusterType paths)
 **Module**: `sdcgovernance/workflow.py`, `sdcgovernance/engine.py`
 **Tests**: 28
 
 ## Workflow Architecture
 
-The workflow state machine is modeled as a ClusterType tree using SDC native structures. Labels use W3C SCXML vocabulary for interoperability. Validation is ordinal adjacency checking - no external state machine parser needed.
+The workflow state machine is modeled as a ClusterType tree using SDC native structures. Borrows the concepts of state and transition from automata theory, as specified in W3C SCXML. Validation is ordinal adjacency checking - no external state machine parser needed.
 
 ## Test Fixtures
 

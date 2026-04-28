@@ -10,7 +10,7 @@ This documentation presents the complete test suite for sdcgovernance with input
 
 1. [Model Inspector Tests](model-inspector.md) - DMType governance slot detection
 2. [Receipt Chain Tests](receipts.md) - SHA-256 hash-chained tamper-evident receipts (OASIS XACML decisions)
-3. [Workflow Tests](workflow.md) - Cluster tree paths, ordinal adjacency (W3C SCXML vocabulary)
+3. [Workflow Tests](workflow.md) - Cluster tree paths, ordinal adjacency (W3C SCXML state/transition concepts)
 4. [Attestation Tests](attestation.md) - Authority assertions (W3C VC Data Model 2.0)
 5. [Party/Role Tests](party-role.md) - ParticipationType function constraints
 6. [Provenance Tests](provenance.md) - AuditType validation, retention policy, PROV-O export (W3C PROV-O/PROV-DM, W3C Activity Streams 2.0, W3C DPV)
@@ -23,7 +23,7 @@ This documentation presents the complete test suite for sdcgovernance with input
 | Standard | Module | Tests | What is Validated |
 |---|---|---|---|
 | OASIS XACML | receipts.py | 26 | PERMIT/DENY/INDETERMINATE decision semantics, receipt chain |
-| W3C SCXML (vocabulary) | workflow.py | 28 | State labels, ordinal sequencing, transition validation |
+| W3C SCXML (concepts) | workflow.py | 28 | State and transition concepts, ordinal sequencing, transition validation |
 | W3C VC Data Model 2.0 | attestation.py | 13 | Committer/issuer, pending flag, proof, committed timestamp |
 | W3C PROV-O / PROV-DM | provenance.py | 19 | Entity/Activity/Agent relationships, PROV record generation, RDF/Turtle export |
 | W3C Activity Streams 2.0 | provenance.py | 4 | Activity type filtering (Create, Update, Accept, etc.) |

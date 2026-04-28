@@ -8,7 +8,8 @@ Workflow states are modeled as XdOrdinal components within sub-clusters
 of a Workflow cluster. Each sub-cluster defines a valid path. Components
 can be reused across sub-clusters (same CUID2) to model branching.
 Validation is ordinal adjacency checking within the cluster tree.
-Labels use W3C SCXML vocabulary for interoperability.
+Borrows the concepts of state and transition from automata theory,
+as specified in W3C SCXML.
 
 Returns OASIS XACML decisions: PERMIT, DENY, or INDETERMINATE with a
 decision receipt.
