@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sdcgovernance"
-version = "4.0.0a1"
+version = "4.0.0"
 description = "W3C standards-based governance validation for Semantic Data Charter instances"
 license = "Apache-2.0"
 requires-python = ">=3.10"
@@ -13,7 +13,7 @@ authors = [
     {name = "Semantic Data Charter Foundation"},
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
