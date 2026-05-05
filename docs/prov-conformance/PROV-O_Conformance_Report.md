@@ -1,11 +1,11 @@
 # W3C PROV-O Conformance Report
 
-## sdcgovernance 4.0.0
+## sdcgovernance 4.0.1
 
 ---
 
 **Document**: PROV-O Core Conformance Report
-**Library**: sdcgovernance 4.0.0 (Apache 2.0)
+**Library**: sdcgovernance 4.0.1 (Apache 2.0)
 **Date**: May 5, 2026
 **Author**: Timothy W. Cook, CEO, Axius SDC, Inc.
 **Validator**: prov-check (Paul Groth, University of Amsterdam)
@@ -16,7 +16,7 @@
 
 ## 1. Executive Summary
 
-sdcgovernance 4.0.0 implements the W3C PROV-O Starting Point terms (Entity, Activity, Agent) with generation, usage, and association relationships. RDF/Turtle export was validated against prov-check, the PROV-CONSTRAINTS validator authored by Paul Groth, co-editor of the W3C PROV-O specification.
+sdcgovernance 4.0.1 implements the W3C PROV-O Starting Point terms (Entity, Activity, Agent) with generation, usage, and association relationships. RDF/Turtle export was validated against prov-check, the PROV-CONSTRAINTS validator authored by Paul Groth, co-editor of the W3C PROV-O specification.
 
 **Result**: All sdcgovernance PROV-O output passes prov-check validation. Core conformance confirmed.
 
@@ -224,7 +224,7 @@ sdcgovernance implements three retention levels for provenance records, aligned 
 
 ## 6. Conformance Statement
 
-sdcgovernance 4.0.0 implements the W3C PROV-O Starting Point terms (Entity, Activity, Agent) with generation (`prov:wasGeneratedBy`), usage (`prov:used`), and association (`prov:wasAssociatedWith`) relationships. Temporal bounds are represented using `prov:startedAtTime` and `prov:endedAtTime`. Activity types are drawn from W3C Activity Streams 2.0.
+sdcgovernance 4.0.1 implements the W3C PROV-O Starting Point terms (Entity, Activity, Agent) with generation (`prov:wasGeneratedBy`), usage (`prov:used`), and association (`prov:wasAssociatedWith`) relationships. Temporal bounds are represented using `prov:startedAtTime` and `prov:endedAtTime`. Activity types are drawn from W3C Activity Streams 2.0.
 
 RDF/Turtle output produced by `provenance_to_rdf()` has been validated against prov-check, the PROV-CONSTRAINTS validator authored by Paul Groth, co-editor of the W3C PROV-O specification. All test cases pass.
 
@@ -234,7 +234,7 @@ sdcgovernance does not claim full PROV-O conformance. The Expanded and Qualified
 
 ## 7. Standards Context
 
-sdcgovernance 4.0.0 implements 24 international standards from 6 standards bodies. The PROV-O implementation is one dimension of a broader governance engine:
+sdcgovernance 4.0.1 implements 24 international standards from 6 standards bodies. The PROV-O implementation is one dimension of a broader governance engine:
 
 | Standard | Body | sdcgovernance Dimension | Author Review |
 |---|---|---|---|
