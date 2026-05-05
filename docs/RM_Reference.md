@@ -34,12 +34,12 @@ Elements with governance relevance but not primary governance dimensions:
 | `protocol` | XdStringType | 0..1 | **Decision table input** - clinical guideline or operations protocol under which data was captured. A workflow transition may only be valid under certain protocols. Consumed as a condition input by DMN decision tables (Phase 5). |
 | `sdc4:XdLink` | XdLinkType | 0..* | **Governed relationships** - originally intended for model supersession ("this model replaces model X"), but the semantics support any type of related link. See XdLink governance section below. |
 
-Elements sdcgovernance does not inspect:
+Elements sdcgovernance does not inspect (except as noted):
 - `label` (xs:string, 0..1) - semantic name
 - `dm-language` (xs:language, 1..1) - language code
 - `dm-encoding` (xs:string, 1..1) - encoding, default utf-8
 - `creation_timestamp` (xs:dateTime, 0..1) - runtime creation timestamp
-- `sdc4:Item` (ItemType, 1..1) - the actual data content (sdcvalidator's domain)
+- `sdc4:Item` (ItemType, 1..1) - the actual data content (sdcvalidator's domain). **Exception**: sdcgovernance inspects a `validation-details` sub-cluster within the data Cluster if present. See Validation Details section below.
 
 ---
 
@@ -106,6 +106,34 @@ ClusterType extends ItemType. It is the grouping component - may contain further
 - DM.Audit is 0..* - a DM instance can carry zero or many audit records. This is where the retention policy applies (most recent + hash, last N, or full chain).
 - External documentation uses "Provenance" (W3C PROV-O vocabulary). Implementation uses AuditType.
 - sdcgovernance discovers AuditType by PROV-O vocabulary bindings on the components.
+
+---
+
+## Validation Details - Entity State Hashes
+
+In SDC4, entity state hashes for tamper-evident provenance chains are modeled as a `validation-details` sub-cluster within the data Cluster (`sdc4:Item`). This is necessary because AuditType does not have a native slot for validation metadata in SDC4. (An SDC5 issue has been filed to add a `validation` ClusterType slot to AuditType directly.)
+
+The `validation-details` cluster uses XdFileType components, leveraging the RM-defined `hash-function` and `hash-result` elements:
+
+```
+sdc4:Item (data Cluster)
+├── [domain-specific data components]
+└── validation-details (ClusterType, 0..1)
+    ├── entity-state-before (XdFileType, 0..1)
+    │   ├── hash-function: "SHA-256"
+    │   └── hash-result: [computed hash of entity state before the activity]
+    └── entity-state-after (XdFileType, 0..1)
+        ├── hash-function: "SHA-256"
+        └── hash-result: [computed hash of entity state after the activity]
+```
+
+**Key facts**:
+- `hash-function` and `hash-result` are existing XdFileType elements defined in the SDC4 RM. No namespace extensions are introduced.
+- sdcgovernance discovers the `validation-details` cluster by vocabulary bindings, consistent with how it discovers other governance components.
+- The hash chain enables detection of unauthorized modifications, gaps in the provenance chain, and retroactive alteration of records.
+- In PROV-O RDF export, these hashes are represented as structured blank nodes linked to each `prov:Activity` via `sdc4:validation-details`.
+
+**SDC5 note**: An issue has been filed on the sdc5-planning branch to add a `validation` ClusterType slot directly to AuditType, eliminating the need to place validation metadata in the data Cluster.
 
 ---
 
@@ -195,7 +223,11 @@ DM (DMType root)
 ├── source_instance_id (xs:string, 0..1) → Source system lineage (e.g., Epic, SAP)
 ├── source_version_id (xs:string, 0..1) → Source system versioning
 ├── current-state (xs:string, 0..1)  → Current workflow position
-├── sdc4:Item (ItemType, 1..1)       → Data content (sdcvalidator, not sdcgovernance)
+├── sdc4:Item (ItemType, 1..1)       → Data content (sdcvalidator's domain)
+│   ├── [domain-specific components]
+│   └── validation-details (ClusterType, 0..1) → Entity state hashes
+│       ├── entity-state-before (XdFileType) → hash-function + hash-result
+│       └── entity-state-after (XdFileType)  → hash-function + hash-result
 ├── subject (PartyType, 0..1)        → Party/Role dimension
 ├── provider[] (PartyType, 0..*)     → Party/Role dimension
 ├── Participation[] (0..*)           → Party/Role dimension
@@ -240,5 +272,6 @@ model_inspector checks:
 9. Is `protocol` populated? → Available as condition input for DMN decision tables.
 10. Is `acs` populated? → Access control and retention policy vocabulary available.
 11. Are there `XdLink` elements? → Governed relationships present. Validate relation types against governance context.
+12. Is there a `validation-details` cluster in the data Cluster? → Entity state hashes present for tamper-evident provenance. Discovered by vocabulary bindings.
 
-Each check is a known position in the DM root. No arbitrary search needed.
+Most checks are at known positions in the DM root. The `validation-details` cluster is the one exception - it lives inside the data Cluster (`sdc4:Item`) and is discovered by vocabulary bindings rather than by fixed position. This exception is documented for SDC5 resolution (AuditType should carry validation details natively).
