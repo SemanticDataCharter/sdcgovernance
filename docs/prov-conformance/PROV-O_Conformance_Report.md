@@ -39,16 +39,19 @@ sdcgovernance implements the **PROV-O core pattern** mapped to SDC4 AuditType co
 | `prov:startedAtTime` | Expanded | Activity temporal bound (start) | **Implemented** |
 | `prov:endedAtTime` | Expanded | Activity temporal bound (end) | **Implemented** |
 
-### 2.2 SDC-Specific Extensions
+### 2.2 SDC Validation Details
 
-sdcgovernance adds two properties in the SDC namespace that extend the PROV-O record with tamper-evidence capabilities:
+sdcgovernance records entity state hashes using the SDC4 RM XdFileType pattern (`hash-function` + `hash-result`). These are modeled as structured validation detail nodes linked to each activity, using RM-defined properties:
 
-| Property | Namespace | Purpose |
+| Property | Pattern | Purpose |
 |---|---|---|
-| `sdc4:entityHashBefore` | `https://semanticdatacharter.com/ns/sdc4/` | SHA-256 hash of entity state before the activity |
-| `sdc4:entityHashAfter` | `https://semanticdatacharter.com/ns/sdc4/` | SHA-256 hash of entity state after the activity |
+| `sdc4:validation-details` | Container node on Activity | Groups validation information for the activity |
+| `sdc4:entity-state-before` | XdFileType hash pattern | SHA-256 hash of entity state before the activity |
+| `sdc4:entity-state-after` | XdFileType hash pattern | SHA-256 hash of entity state after the activity |
+| `sdc4:hash-function` | XdFileType element | Hash algorithm identifier ("SHA-256") |
+| `sdc4:hash-result` | XdFileType element | The computed hash value |
 
-These extensions are in a separate namespace and do not interfere with PROV-O conformance.
+These properties use the SDC namespace with RM-defined element names (`hash-function`, `hash-result` from XdFileType). No namespace extensions beyond the RM specification are introduced.
 
 ### 2.3 PROV-O Terms Not Implemented
 
@@ -123,7 +126,8 @@ sdc4:activity-0 a prov:Activity ;
     prov:type "Create" ;
     prov:used sdc4:cordovaos-patient-001 ;
     prov:wasAssociatedWith sdc4:agent-maria-santos ;
-    sdc4:entityHashAfter "a1b2c3d4e5f6" .
+    sdc4:validation-details [ sdc4:entity-state-after [ sdc4:hash-function "SHA-256" ;
+                    sdc4:hash-result "a1b2c3d4e5f6" ] ] .
 
 sdc4:activity-1 a prov:Activity ;
     rdfs:comment "Updated vital signs" ;
@@ -132,8 +136,10 @@ sdc4:activity-1 a prov:Activity ;
     prov:type "Update" ;
     prov:used sdc4:cordovaos-patient-001 ;
     prov:wasAssociatedWith sdc4:agent-nurse-thompson ;
-    sdc4:entityHashAfter "f6e5d4c3b2a1" ;
-    sdc4:entityHashBefore "a1b2c3d4e5f6" .
+    sdc4:validation-details [ sdc4:entity-state-after [ sdc4:hash-function "SHA-256" ;
+                    sdc4:hash-result "f6e5d4c3b2a1" ] ;
+            sdc4:entity-state-before [ sdc4:hash-function "SHA-256" ;
+                    sdc4:hash-result "a1b2c3d4e5f6" ] ] .
 
 sdc4:activity-2 a prov:Activity ;
     rdfs:comment "Approved for discharge" ;
@@ -142,8 +148,10 @@ sdc4:activity-2 a prov:Activity ;
     prov:type "Approve" ;
     prov:used sdc4:cordovaos-patient-001 ;
     prov:wasAssociatedWith sdc4:agent-maria-santos ;
-    sdc4:entityHashAfter "c3d4e5f6a1b2" ;
-    sdc4:entityHashBefore "f6e5d4c3b2a1" .
+    sdc4:validation-details [ sdc4:entity-state-after [ sdc4:hash-function "SHA-256" ;
+                    sdc4:hash-result "c3d4e5f6a1b2" ] ;
+            sdc4:entity-state-before [ sdc4:hash-function "SHA-256" ;
+                    sdc4:hash-result "f6e5d4c3b2a1" ] ] .
 
 sdc4:agent-nurse-thompson a prov:Agent ;
     rdfs:label "Nurse Thompson" .
@@ -194,13 +202,13 @@ The `provenance_to_rdf()` function reads these AuditType components and produces
 
 ### 5.2 Tamper Evidence
 
-sdcgovernance extends the PROV-O record with SHA-256 entity hash values (`sdc4:entityHashBefore` and `sdc4:entityHashAfter`) that create a verifiable chain of entity states across activities. This enables detection of:
+sdcgovernance records SHA-256 entity state hashes using the SDC4 RM XdFileType pattern (`hash-function` + `hash-result`). Each activity carries a `validation-details` node containing `entity-state-before` and `entity-state-after` hash records. This creates a verifiable chain of entity states across activities, enabling detection of:
 
 - Unauthorized modifications between recorded activities
 - Gaps in the provenance chain
 - Retroactive alteration of provenance records
 
-These extensions use the SDC namespace (`https://semanticdatacharter.com/ns/sdc4/`) and do not modify or conflict with PROV-O vocabulary.
+The hash properties use RM-defined element names from XdFileType. No extensions to the sdc4 namespace beyond the Reference Model specification are introduced.
 
 ### 5.3 Retention Policies
 

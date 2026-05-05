@@ -306,6 +306,11 @@ def provenance_to_rdf(records: list[ProvRecord], instance_id: str = "") -> str:
     """
     Export provenance records as RDF/Turtle using W3C PROV-O vocabulary.
 
+    Entity state hashes are modeled using the SDC4 RM XdFileType pattern
+    (hash-function + hash-result), represented as structured blank nodes
+    within a ValidationDetails container linked to each activity. This
+    avoids extending the sdc4 namespace beyond what the RM defines.
+
     Args:
         records: List of ProvRecord objects to export.
         instance_id: DM.instance_id for the entity URI.
@@ -352,11 +357,22 @@ def provenance_to_rdf(records: list[ProvRecord], instance_id: str = "") -> str:
         g.add((entity_uri, PROV.wasGeneratedBy, activity))
         g.add((activity, PROV.used, entity_uri))
 
-        # Entity hashes as annotations
-        if rec.entity_hash_before:
-            g.add((activity, SDC.entityHashBefore, Literal(rec.entity_hash_before)))
-        if rec.entity_hash_after:
-            g.add((activity, SDC.entityHashAfter, Literal(rec.entity_hash_after)))
+        # Entity state hashes as XdFileType-pattern validation details.
+        # Uses RM-defined properties (hash-function, hash-result) within
+        # a validation-details container, not invented namespace extensions.
+        if rec.entity_hash_before or rec.entity_hash_after:
+            validation = BNode()
+            g.add((activity, SDC["validation-details"], validation))
+            if rec.entity_hash_before:
+                hash_before = BNode()
+                g.add((validation, SDC["entity-state-before"], hash_before))
+                g.add((hash_before, SDC["hash-function"], Literal("SHA-256")))
+                g.add((hash_before, SDC["hash-result"], Literal(rec.entity_hash_before)))
+            if rec.entity_hash_after:
+                hash_after = BNode()
+                g.add((validation, SDC["entity-state-after"], hash_after))
+                g.add((hash_after, SDC["hash-function"], Literal("SHA-256")))
+                g.add((hash_after, SDC["hash-result"], Literal(rec.entity_hash_after)))
 
     return g.serialize(format="turtle")
 
