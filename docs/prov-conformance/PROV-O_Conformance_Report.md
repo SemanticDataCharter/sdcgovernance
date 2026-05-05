@@ -79,7 +79,13 @@ The following PROV-O terms are out of scope for sdcgovernance's AuditType mappin
 - Test record: 279/280 official W3C test cases passing
 - Input format: PROV-O serializations (RDF/Turtle)
 
-### 3.2 Test Procedure
+### 3.2 Environment Note
+
+prov-check specifies rdflib 4.2.2 in its requirements. Validation was performed with rdflib 7.1.4. The SPARQL processor API used by prov-check (`rdflib.plugins.sparql.processor.prepareQuery` and `processUpdate`) maintained backwards compatibility across this version range. All prov-check SPARQL constraint queries executed without modification.
+
+No other dependencies beyond rdflib are required by prov-check.
+
+### 3.3 Test Procedure
 
 1. Generate RDF/Turtle output from sdcgovernance's `provenance_to_rdf()` function using realistic provenance records
 2. Feed the Turtle output into prov-check
