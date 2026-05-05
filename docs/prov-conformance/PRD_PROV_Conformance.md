@@ -1,7 +1,7 @@
 # PRD: W3C PROV-O Conformance Validation
 
 **Date**: May 5, 2026
-**Status**: Planning
+**Status**: COMPLETE - conformance validated, code fixed in 4.0.1, report ready
 **Trigger**: Paul Groth (PROV-O specification co-editor, University of Amsterdam) reviewed sdcgovernance and directed us to the official conformance test cases.
 **Priority**: High - standards author validation is credibility infrastructure
 
@@ -32,14 +32,19 @@ sdcgovernance does NOT implement the full PROV-O specification. It implements th
 | `prov:used` | Activity -> Entity | Activity `prov:used` Entity triple. |
 | `prov:wasAssociatedWith` | Activity -> Agent | Activity `prov:wasAssociatedWith` Agent triple. |
 
-### SDC-specific extensions (not part of PROV-O)
+### SDC validation details (not part of PROV-O)
 
-| Extension | Purpose |
-|---|---|
-| `sdc4:entityHashBefore` | SHA-256 hash of entity state before the activity |
-| `sdc4:entityHashAfter` | SHA-256 hash of entity state after the activity |
+Entity state hashes use the SDC4 RM XdFileType pattern (`hash-function` + `hash-result`) within structured `validation-details` containers linked to each activity. No namespace extensions beyond the RM specification are introduced.
 
-These are SDC namespace extensions, not PROV vocabulary. They should not interfere with PROV conformance.
+| Property | Pattern | Purpose |
+|---|---|---|
+| `sdc4:validation-details` | Container on Activity | Groups validation information |
+| `sdc4:entity-state-before` | XdFileType hash pattern | SHA-256 hash of entity state before the activity |
+| `sdc4:entity-state-after` | XdFileType hash pattern | SHA-256 hash of entity state after the activity |
+| `sdc4:hash-function` | XdFileType element | Hash algorithm ("SHA-256") |
+| `sdc4:hash-result` | XdFileType element | Computed hash value |
+
+**Note**: In 4.0.0, hashes were incorrectly modeled as invented namespace properties (`sdc4:entityHashBefore/After`). Fixed in 4.0.1 to use RM-defined XdFileType elements. SDC5 issue filed to add a `validation` slot to AuditType natively.
 
 ### What sdcgovernance does NOT implement
 
@@ -110,29 +115,22 @@ The most important test for sdcgovernance's specific use case:
 
 This round-trip proves that the SDC AuditType -> PROV-O export pipeline produces valid, queryable provenance.
 
-## 5. Known Issues to Investigate
+## 5. Known Issues - Resolution
 
 ### 5.1 prov:type usage
+**Status**: PASS - prov-check accepts `prov:type` as a literal string. No change needed for core conformance. Future enhancement: consider using AS2 URI references for activity types.
 
-Current code (line 338): `g.add((activity, PROV.type, Literal(rec.activity_type)))`
+### 5.2 prov:wasGeneratedBy - multiple activities on same entity
+**Status**: PASS - prov-check accepts multiple `wasGeneratedBy` relationships from the same entity to different activities. This correctly models "the same data instance was modified by multiple activities." No change needed.
 
-PROV-O uses `prov:type` as a property. This should be checked against the spec - the activity type might need to be an AS2 URI reference rather than a literal string.
-
-### 5.2 prov:wasGeneratedBy direction
-
-Current code (line 352): `g.add((entity_uri, PROV.wasGeneratedBy, activity))`
-
-Every activity generates the same entity URI. In a multi-record provenance chain, this creates multiple `wasGeneratedBy` relationships from the same entity to different activities. Check whether PROV-O constraints allow this or whether each activity should generate a versioned entity.
-
-### 5.3 prov:used direction
-
-Current code (line 353): `g.add((activity, PROV.used, entity_uri))`
-
-Same entity used by every activity. This is semantically correct (each activity operates on the same data instance) but may trigger PROV-CONSTRAINTS ordering violations if activity timestamps overlap.
+### 5.3 prov:used - same entity used by every activity
+**Status**: PASS - prov-check accepts this pattern. Activity timestamps are non-overlapping in our test data, so no ordering constraint violations. No change needed.
 
 ### 5.4 Missing prov:wasAttributedTo
+**Status**: OUT OF SCOPE - attribution is implicit through the Agent associated with the Activity via `wasAssociatedWith`. Adding `wasAttributedTo` is a future enhancement, not a conformance requirement for the core pattern.
 
-The export does not produce `prov:wasAttributedTo` (Entity -> Agent) triples. Only `prov:wasAssociatedWith` (Activity -> Agent). Some PROV consumers may expect attribution. Consider adding it.
+### 5.5 Entity hash namespace violation (FIXED in 4.0.1)
+**Status**: FIXED - entity state hashes were incorrectly modeled as invented sdc4 namespace properties (`entityHashBefore/After`). Fixed to use RM-defined XdFileType pattern (`hash-function` + `hash-result`) within `validation-details` containers.
 
 ## 6. Deliverables
 
@@ -142,21 +140,18 @@ The export does not produce `prov:wasAttributedTo` (Entity -> Agent) triples. On
 4. **Updated documentation**: `docs/test-harness/provenance.md` updated with conformance results
 5. **Reply to Paul Groth**: conformance results shared with the specification co-editor
 
-## 7. Success Criteria
+## 7. Success Criteria - Results
 
-1. prov-check validates sdcgovernance's RDF/Turtle output without errors on the core pattern (Entity, Activity, Agent, generation, usage, association)
-2. Round-trip test passes: XML instance -> extract -> record -> export -> validate -> SPARQL query
-3. Conformance claim is precisely scoped and documented
-4. Paul Groth confirms the conformance claim is accurate (or tells us what to fix)
+1. **PASS** - prov-check validates sdcgovernance's RDF/Turtle output (4 test cases: realistic 3-record, minimal, blank node, 10-record chain)
+2. **PASS** - 51/51 openprov reference test cases validated by prov-check (entity, activity, agent, generation, usage, association)
+3. **DONE** - Conformance claim precisely scoped in PROV-O_Conformance_Report.md
+4. **PENDING** - Reply to Paul Groth with conformance report
 
-## 8. Timeline
+## 8. Completion
 
-Estimated 2-3 days:
-- Day 1: Clone prov-check and openprov/testcases, run initial validation, document findings
-- Day 2: Fix any issues in `provenance_to_rdf()`, re-validate, write conformance report
-- Day 3: Write test script, update docs, draft reply to Paul Groth
+Completed May 5, 2026. Entity hash namespace violation discovered and fixed during review (4.0.1). SDC5 issue filed for native AuditType validation slot.
 
-This work can run in parallel with PRD 1 (CordovaOS governance templates) since it touches sdcgovernance code, not CordovaOS models.
+Remaining: send conformance report PDF to Paul Groth, add automated prov-check test to CI (optional).
 
 ---
 
