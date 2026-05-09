@@ -318,6 +318,177 @@ class TestEvaluateDecision:
         assert "table_json" in required
 
 
+class TestEvaluateDecisionReceipt:
+    """evaluate_decision returns a tamper-evident Receipt (4.0.3+)."""
+
+    @staticmethod
+    def _basic_table() -> dict:
+        return {
+            "name": "model_grade_check",
+            "hit_policy": "FIRST",
+            "rules": [
+                {
+                    "conditions": [
+                        {"field": "model_grade", "op": "in", "value": ["D", "F"]}
+                    ],
+                    "outcome": "DENY",
+                    "description": "Low model grade rejected",
+                },
+                {"conditions": [], "outcome": "PERMIT"},
+            ],
+        }
+
+    def test_response_includes_receipt(self):
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"model_grade": "D"}),
+        })
+        assert "receipt" in data
+        assert data["receipt"]["decision"] == "DENY"
+        assert data["receipt"]["receipt_hash"]
+        assert len(data["receipt"]["receipt_hash"]) == 64  # SHA-256 hex
+
+    def test_legacy_response_fields_preserved(self):
+        """Backward compatibility: existing fields still present."""
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"model_grade": "A"}),
+        })
+        assert data["decision"] == "PERMIT"
+        assert data["matched_rules"] == [1]
+        assert "reasoning" in data
+        assert "errors" in data
+
+    def test_receipt_records_instance_id_and_version(self):
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"model_grade": "D"}),
+            "instance_id": "gpt-4o",
+            "instance_version": "2024-08-06",
+        })
+        assert data["receipt"]["instance_id"] == "gpt-4o"
+        assert data["receipt"]["instance_version"] == "2024-08-06"
+
+    def test_receipt_dimensions_checked_first_match(self):
+        """For FIRST hit policy, dimensions_checked is the firing rule's fields."""
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"model_grade": "F"}),
+        })
+        assert data["receipt"]["dimensions_checked"] == ["model_grade"]
+
+    def test_receipt_dimensions_checked_multiple_fields(self):
+        table = {
+            "name": "multi_field",
+            "hit_policy": "FIRST",
+            "rules": [
+                {
+                    "conditions": [
+                        {"field": "regime", "op": "==", "value": "R3"},
+                        {"field": "data_class", "op": ">=", "value": "Restricted"},
+                    ],
+                    "outcome": "DENY",
+                },
+            ],
+        }
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(table),
+            "extra_context": json.dumps({
+                "regime": "R3",
+                "data_class": "Restricted",
+            }),
+        })
+        assert data["receipt"]["decision"] == "DENY"
+        assert data["receipt"]["dimensions_checked"] == ["regime", "data_class"]
+
+    def test_receipt_dimensions_checked_empty_when_no_match(self):
+        table = {
+            "name": "no_match",
+            "hit_policy": "FIRST",
+            "rules": [
+                {"conditions": [{"field": "x", "op": "==", "value": "y"}], "outcome": "PERMIT"},
+            ],
+        }
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(table),
+            "extra_context": json.dumps({"x": "z"}),
+        })
+        assert data["receipt"]["decision"] == "NOT_APPLICABLE"
+        assert data["receipt"]["dimensions_checked"] == []
+
+    def test_receipt_status_code_ok_on_clean_evaluation(self):
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"model_grade": "A"}),
+        })
+        # XACML 3.0 ok URN
+        assert data["receipt"]["status_code"] == "urn:oasis:names:tc:xacml:1.0:status:ok"
+
+    def test_receipt_status_code_processing_error_on_unique_violation(self):
+        """UNIQUE hit policy with multiple matches sets PROCESSING_ERROR."""
+        table = {
+            "name": "unique_conflict",
+            "hit_policy": "UNIQUE",
+            "rules": [
+                {"conditions": [{"field": "x", "op": "==", "value": 1}], "outcome": "PERMIT"},
+                {"conditions": [{"field": "x", "op": "==", "value": 1}], "outcome": "DENY"},
+            ],
+        }
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(table),
+            "extra_context": json.dumps({"x": 1}),
+        })
+        assert data["receipt"]["decision"] == "INDETERMINATE"
+        assert data["receipt"]["status_code"] == (
+            "urn:oasis:names:tc:xacml:1.0:status:processing-error"
+        )
+        assert data["receipt"]["errors"]
+
+    def test_receipt_chain_links_via_previous_hash(self):
+        """First call starts a chain; second call links via previous_hash."""
+        first = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"model_grade": "D"}),
+            "instance_id": "gpt-4o",
+        })
+        first_hash = first["receipt"]["receipt_hash"]
+        assert first["receipt"]["previous_hash"] is None
+
+        second = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"model_grade": "B"}),
+            "instance_id": "gpt-4o",
+            "previous_hash": first_hash,
+        })
+        assert second["receipt"]["previous_hash"] == first_hash
+        assert second["receipt"]["receipt_hash"] != first_hash
+
+    def test_receipt_hash_is_deterministic_over_content(self):
+        """Receipt rebuilt from to_dict() output reproduces the same hash."""
+        from sdcgovernance.receipts import Receipt, Decision, StatusCode
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"model_grade": "D"}),
+            "instance_id": "gpt-4o",
+            "instance_version": "2024-08-06",
+        })
+        rec = data["receipt"]
+        # Reconstruct a Receipt with the same content and verify the hash.
+        reconstructed = Receipt(
+            decision=Decision(rec["decision"]),
+            reasoning=rec["reasoning"],
+            status_code=StatusCode(rec["status_code"]),
+            instance_id=rec["instance_id"],
+            instance_version=rec["instance_version"],
+            timestamp=rec["timestamp"],
+            previous_hash=rec["previous_hash"],
+            dimensions_checked=rec["dimensions_checked"],
+            errors=rec["errors"],
+        )
+        assert reconstructed.verify_hash()
+        assert reconstructed.receipt_hash == rec["receipt_hash"]
+
+
 class TestParseDecisionTable:
     """JSON to DecisionTable parsing."""
 

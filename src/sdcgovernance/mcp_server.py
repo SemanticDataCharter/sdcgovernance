@@ -180,11 +180,13 @@ TOOLS = [
         "name": "evaluate_decision",
         "description": (
             "Evaluate a DMN decision table against instance context. "
-            "Returns decision, matched_rules, reasoning. "
+            "Returns decision, matched_rules, reasoning, errors, and a "
+            "tamper-evident Receipt with SHA-256 receipt_hash. "
             "instance_path is optional: when omitted, the decision is "
             "evaluated against extra_context alone, which is the path "
             "external context-only consumers (e.g. MTCP Evidence Packs) "
-            "should use."
+            "should use. Pass previous_hash to chain receipts; the caller "
+            "is responsible for chain persistence."
         ),
         "inputSchema": {
             "type": "object",
@@ -210,6 +212,34 @@ TOOLS = [
                     "type": "string",
                     "description": "JSON string with additional context key-value pairs.",
                     "default": "{}",
+                },
+                "instance_id": {
+                    "type": "string",
+                    "description": (
+                        "Identifier for the entity being evaluated, recorded "
+                        "in the Receipt. For SDC instances this is the DM "
+                        "instance_id (CUID2). For external consumers this "
+                        "is the entity identifier (e.g. an MTCP model_id "
+                        "such as 'gpt-4o')."
+                    ),
+                    "default": "",
+                },
+                "instance_version": {
+                    "type": "string",
+                    "description": (
+                        "Version of the entity being evaluated, recorded in "
+                        "the Receipt."
+                    ),
+                    "default": "",
+                },
+                "previous_hash": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "SHA-256 hash of the prior Receipt in the caller's "
+                        "chain. Pass null (default) to start a new chain. "
+                        "The caller is responsible for chain persistence."
+                    ),
+                    "default": None,
                 },
             },
             "required": ["table_json"],
@@ -294,6 +324,8 @@ def _handle_record_provenance(args: dict[str, Any]) -> Any:
 
 
 def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
+    from sdcgovernance.receipts import Receipt, StatusCode
+
     table_data = json.loads(args["table_json"])
     table = _parse_decision_table(table_data)
     extra = json.loads(args.get("extra_context", "{}"))
@@ -306,11 +338,41 @@ def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
         # evaluate against extra_context only.
         context = dict(extra)
     result = evaluate_decision_table(table, context)
+
+    # Compute dimensions_checked: union of fields referenced by the rules
+    # that participated in the decision (preserving first-seen order).
+    dimensions_checked: list[str] = []
+    for idx in result.matched_rules:
+        if 0 <= idx < len(table.rules):
+            for cond in table.rules[idx].conditions:
+                if cond.field not in dimensions_checked:
+                    dimensions_checked.append(cond.field)
+
+    # XACML 3.0 Section 7.18 status code mapping. Errors from the decision
+    # evaluator (e.g. UNIQUE hit-policy violation, unknown hit policy) map
+    # to processing-error. Normal PERMIT / DENY / NOT_APPLICABLE /
+    # INDETERMINATE-by-no-match are processed-cleanly (status: ok).
+    status_code = (
+        StatusCode.PROCESSING_ERROR if result.errors else StatusCode.OK
+    )
+
+    receipt = Receipt(
+        decision=result.decision,
+        reasoning=result.reasoning,
+        status_code=status_code,
+        instance_id=args.get("instance_id", "") or "",
+        instance_version=args.get("instance_version", "") or "",
+        previous_hash=args.get("previous_hash"),
+        dimensions_checked=dimensions_checked,
+        errors=list(result.errors),
+    )
+
     return {
         "decision": result.decision.value,
         "matched_rules": result.matched_rules,
         "reasoning": result.reasoning,
         "errors": result.errors,
+        "receipt": receipt.to_dict(),
     }
 
 
