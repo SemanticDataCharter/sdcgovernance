@@ -180,14 +180,22 @@ TOOLS = [
         "name": "evaluate_decision",
         "description": (
             "Evaluate a DMN decision table against instance context. "
-            "Returns decision, matched_rules, reasoning."
+            "Returns decision, matched_rules, reasoning. "
+            "instance_path is optional: when omitted, the decision is "
+            "evaluated against extra_context alone, which is the path "
+            "external context-only consumers (e.g. MTCP Evidence Packs) "
+            "should use."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "instance_path": {
                     "type": "string",
-                    "description": "Path to the XML instance file for context extraction.",
+                    "description": (
+                        "Path to the XML instance file for context "
+                        "extraction. Optional. Omit to evaluate against "
+                        "extra_context only."
+                    ),
                 },
                 "table_json": {
                     "type": "string",
@@ -204,7 +212,7 @@ TOOLS = [
                     "default": "{}",
                 },
             },
-            "required": ["instance_path", "table_json"],
+            "required": ["table_json"],
         },
     },
 ]
@@ -289,7 +297,14 @@ def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
     table_data = json.loads(args["table_json"])
     table = _parse_decision_table(table_data)
     extra = json.loads(args.get("extra_context", "{}"))
-    context = build_context_from_instance(args["instance_path"], extra=extra)
+    instance_path = args.get("instance_path")
+    if instance_path:
+        # Path supplied: extract context from the SDC instance and merge extra.
+        context = build_context_from_instance(instance_path, extra=extra)
+    else:
+        # No SDC instance available (e.g. MTCP Evidence Pack consumer):
+        # evaluate against extra_context only.
+        context = dict(extra)
     result = evaluate_decision_table(table, context)
     return {
         "decision": result.decision.value,

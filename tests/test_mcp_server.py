@@ -268,6 +268,55 @@ class TestEvaluateDecision:
         })
         assert data["decision"] == "NOT_APPLICABLE"
 
+    def test_extra_context_only_no_instance_path(self):
+        """instance_path is optional: external consumers (e.g. MTCP) can
+        evaluate against extra_context alone."""
+        table = {
+            "name": "model_grade_check",
+            "hit_policy": "FIRST",
+            "rules": [
+                {
+                    "conditions": [{"field": "model_grade", "op": "in", "value": ["D", "F"]}],
+                    "outcome": "DENY",
+                    "description": "Low model grade rejected",
+                },
+                {"conditions": [], "outcome": "PERMIT"},
+            ],
+        }
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(table),
+            "extra_context": json.dumps({"model_grade": "D"}),
+        })
+        assert data["decision"] == "DENY"
+        assert 0 in data["matched_rules"]
+
+    def test_extra_context_only_permit(self):
+        """Same path, PERMIT branch."""
+        table = {
+            "name": "model_grade_check",
+            "hit_policy": "FIRST",
+            "rules": [
+                {
+                    "conditions": [{"field": "model_grade", "op": "in", "value": ["D", "F"]}],
+                    "outcome": "DENY",
+                },
+                {"conditions": [], "outcome": "PERMIT"},
+            ],
+        }
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(table),
+            "extra_context": json.dumps({"model_grade": "A"}),
+        })
+        assert data["decision"] == "PERMIT"
+
+    def test_evaluate_decision_input_schema_makes_instance_path_optional(self):
+        """The MCP inputSchema should not list instance_path as required."""
+        from sdcgovernance.mcp_server import TOOLS
+        evaluate_decision_tool = next(t for t in TOOLS if t["name"] == "evaluate_decision")
+        required = evaluate_decision_tool["inputSchema"].get("required", [])
+        assert "instance_path" not in required
+        assert "table_json" in required
+
 
 class TestParseDecisionTable:
     """JSON to DecisionTable parsing."""
