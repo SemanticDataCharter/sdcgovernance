@@ -56,7 +56,7 @@ class TestMcpProtocol:
         request = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
         response = _handle_request(request)
         tools = response["result"]["tools"]
-        assert len(tools) == 6
+        assert len(tools) == 7
         names = {t["name"] for t in tools}
         assert names == {
             "get_governance_status",
@@ -65,6 +65,7 @@ class TestMcpProtocol:
             "validate_governance",
             "record_provenance",
             "evaluate_decision",
+            "verify_evidence_pack",
         }
 
     def test_tools_have_input_schemas(self):
@@ -487,6 +488,80 @@ class TestEvaluateDecisionReceipt:
         )
         assert reconstructed.verify_hash()
         assert reconstructed.receipt_hash == rec["receipt_hash"]
+
+
+class TestEvaluateDecisionContextHash:
+    """evaluate_decision binds context_hash into the Receipt (4.0.4+)."""
+
+    @staticmethod
+    def _basic_table() -> dict:
+        return {
+            "name": "model_grade_check",
+            "hit_policy": "FIRST",
+            "rules": [
+                {"conditions": [], "outcome": "PERMIT"},
+            ],
+        }
+
+    def test_context_hash_recorded_in_receipt(self):
+        ctx_hash = "89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283"
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"x": 1}),
+            "context_hash": ctx_hash,
+        })
+        assert data["receipt"]["context_hash"] == ctx_hash
+
+    def test_context_hash_default_empty(self):
+        data = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"x": 1}),
+        })
+        assert data["receipt"]["context_hash"] == ""
+
+    def test_context_hash_changes_receipt_hash(self):
+        """Different context_hash values produce different receipt hashes."""
+        a = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"x": 1}),
+            "context_hash": "aaa",
+            "instance_id": "test",
+        })
+        b = call_tool("evaluate_decision", {
+            "table_json": json.dumps(self._basic_table()),
+            "extra_context": json.dumps({"x": 1}),
+            "context_hash": "bbb",
+            "instance_id": "test",
+        })
+        # Timestamps will differ too, so this is a weak check; the
+        # round-trip verify_hash test in test_receipts gives the
+        # deterministic guarantee.
+        assert a["receipt"]["receipt_hash"] != b["receipt"]["receipt_hash"]
+
+
+class TestVerifyEvidencePackTool:
+    """verify_evidence_pack MCP tool (4.0.4+)."""
+
+    def test_valid_pack(self):
+        from sdcgovernance.mtcp import compute_evidence_pack_hash
+
+        ep = {"model_id": "gpt-4o", "score": 0.95}
+        ep["evidence_pack_hash"] = compute_evidence_pack_hash(ep)
+        data = call_tool("verify_evidence_pack", {
+            "evidence_pack": json.dumps(ep),
+        })
+        assert data["valid"] is True
+
+    def test_tampered_pack(self):
+        from sdcgovernance.mtcp import compute_evidence_pack_hash
+
+        ep = {"model_id": "gpt-4o", "score": 0.95}
+        ep["evidence_pack_hash"] = compute_evidence_pack_hash(ep)
+        ep["score"] = 0.10
+        data = call_tool("verify_evidence_pack", {
+            "evidence_pack": json.dumps(ep),
+        })
+        assert data["valid"] is False
 
 
 class TestParseDecisionTable:

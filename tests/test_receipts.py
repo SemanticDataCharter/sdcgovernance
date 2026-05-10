@@ -78,6 +78,49 @@ class TestReceipt:
         )
         assert r.dimensions_checked == ["workflow", "attestation"]
 
+    def test_receipt_context_hash_default_empty(self):
+        r = Receipt(decision=Decision.PERMIT)
+        assert r.context_hash == ""
+
+    def test_receipt_context_hash_round_trip(self):
+        ctx = "89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283"
+        r = Receipt(decision=Decision.PERMIT, context_hash=ctx)
+        assert r.context_hash == ctx
+        assert r.verify_hash() is True
+
+    def test_receipt_hash_changes_with_context_hash(self):
+        ts = "2026-04-24T12:00:00Z"
+        r1 = Receipt(decision=Decision.PERMIT, timestamp=ts, context_hash="aaa")
+        r2 = Receipt(decision=Decision.PERMIT, timestamp=ts, context_hash="bbb")
+        assert r1.receipt_hash != r2.receipt_hash
+
+    def test_receipt_canonicalization_no_whitespace(self):
+        """Hash uses RFC 8785-aligned canonicalization (no whitespace)."""
+        import hashlib
+        import json
+        r = Receipt(
+            decision=Decision.PERMIT,
+            reasoning="test",
+            timestamp="2026-04-24T12:00:00Z",
+        )
+        content = {
+            "decision": "PERMIT",
+            "reasoning": "test",
+            "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+            "instance_id": "",
+            "instance_version": "",
+            "timestamp": "2026-04-24T12:00:00Z",
+            "previous_hash": None,
+            "dimensions_checked": [],
+            "errors": [],
+            "context_hash": "",
+        }
+        canonical = json.dumps(
+            content, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
+        expected = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        assert r.receipt_hash == expected
+
 
 class TestReceiptChain:
     """Append-only, hash-chained receipt sequence."""

@@ -21,6 +21,7 @@ Returns decisions using OASIS XACML semantics: **PERMIT**, **DENY**, or **INDETE
 9. [SHACL Validation](shacl.md) - cross-entity constraint validation
 10. [MCP Server](mcp-server.md) - JSON-RPC 2.0 stdio server for agent integration
 11. [GovernanceEngine](engine.md) - the advisory API agents query
+12. [MTCP Integration](mtcp-integration.md) - consuming MTCP Evidence Packs, RFC 8785 hash convention, verify_evidence_pack
 
 ## Key Concepts
 

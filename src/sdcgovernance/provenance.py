@@ -92,7 +92,12 @@ class AuditRecord:
             "timestamp": self.timestamp,
             "activity_type": self.activity_type,
         }
-        canonical = json.dumps(content, sort_keys=True, ensure_ascii=True)
+        canonical = json.dumps(
+            content,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 

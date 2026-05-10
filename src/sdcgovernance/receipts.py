@@ -135,6 +135,11 @@ class Receipt:
     # Errors for DENY/INDETERMINATE
     errors: list[str] = field(default_factory=list)
 
+    # Hash of the extra_context payload that produced this decision.
+    # Binds the Receipt cryptographically to the context it evaluated.
+    # MTCP consumers pass the Evidence Pack hash here.
+    context_hash: str = ""
+
     def __post_init__(self) -> None:
         """Compute the receipt hash after initialization."""
         if not self.receipt_hash:
@@ -144,10 +149,10 @@ class Receipt:
         """
         Compute SHA-256 hash of the receipt content.
 
-        The hash covers all fields except receipt_hash itself.
-        Timestamp IS included for tamper evidence - this means the
-        hash is unique per evaluation (not replayable), but the
-        decision value is deterministic.
+        Canonicalization follows RFC 8785 conventions: keys sorted, no
+        whitespace, comma-colon separators, UTF-8 (no ASCII escaping).
+        Aligned with the MTCP Evidence Pack hash spec for cross-chain
+        verifiability.
         """
         content = {
             "decision": self.decision.value,
@@ -159,8 +164,14 @@ class Receipt:
             "previous_hash": self.previous_hash,
             "dimensions_checked": self.dimensions_checked,
             "errors": self.errors,
+            "context_hash": self.context_hash,
         }
-        canonical = json.dumps(content, sort_keys=True, ensure_ascii=True)
+        canonical = json.dumps(
+            content,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     def verify_hash(self) -> bool:
@@ -215,6 +226,7 @@ class ReceiptChain:
         errors: list[str] | None = None,
         status_code: StatusCode = StatusCode.OK,
         obligations: list[Obligation] | None = None,
+        context_hash: str = "",
     ) -> Receipt:
         """
         Create a new receipt and append it to the chain.
@@ -234,6 +246,7 @@ class ReceiptChain:
             errors=errors or [],
             status_code=status_code,
             obligations=obligations or [],
+            context_hash=context_hash,
         )
         self._receipts.append(receipt)
         return receipt

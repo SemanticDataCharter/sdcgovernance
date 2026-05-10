@@ -44,7 +44,7 @@ from sdcgovernance.decision import (
 JSONRPC_VERSION = "2.0"
 MCP_PROTOCOL_VERSION = "2024-11-05"
 SERVER_NAME = "sdcgovernance"
-SERVER_VERSION = "4.0.0"
+SERVER_VERSION = "4.0.4"
 
 # Engine cache
 _engines: dict[str, GovernanceEngine] = {}
@@ -241,8 +241,41 @@ TOOLS = [
                     ),
                     "default": None,
                 },
+                "context_hash": {
+                    "type": "string",
+                    "description": (
+                        "SHA-256 hash of the extra_context payload, computed "
+                        "by the caller. Binds the Receipt cryptographically "
+                        "to the context that produced the decision. MTCP "
+                        "consumers pass the Evidence Pack hash here."
+                    ),
+                    "default": "",
+                },
             },
             "required": ["table_json"],
+        },
+    },
+    {
+        "name": "verify_evidence_pack",
+        "description": (
+            "Verify the integrity of an MTCP Evidence Pack by recomputing "
+            "its evidence_pack_hash. Returns valid (bool), computed_hash, "
+            "and expected_hash. Canonicalization follows RFC 8785: keys "
+            "sorted, no whitespace, comma-colon separators, UTF-8."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "evidence_pack": {
+                    "type": "string",
+                    "description": (
+                        "JSON string of the MTCP Evidence Pack including "
+                        "its evidence_pack_hash field. Hash is recomputed "
+                        "over the remaining fields and compared."
+                    ),
+                },
+            },
+            "required": ["evidence_pack"],
         },
     },
 ]
@@ -365,6 +398,7 @@ def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
         previous_hash=args.get("previous_hash"),
         dimensions_checked=dimensions_checked,
         errors=list(result.errors),
+        context_hash=args.get("context_hash", "") or "",
     )
 
     return {
@@ -376,6 +410,13 @@ def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
     }
 
 
+def _handle_verify_evidence_pack(args: dict[str, Any]) -> Any:
+    from sdcgovernance.mtcp import verify_evidence_pack
+
+    ep = json.loads(args["evidence_pack"])
+    return verify_evidence_pack(ep)
+
+
 TOOL_HANDLERS = {
     "get_governance_status": _handle_get_governance_status,
     "get_allowed_transitions": _handle_get_allowed_transitions,
@@ -383,6 +424,7 @@ TOOL_HANDLERS = {
     "validate_governance": _handle_validate_governance,
     "record_provenance": _handle_record_provenance,
     "evaluate_decision": _handle_evaluate_decision,
+    "verify_evidence_pack": _handle_verify_evidence_pack,
 }
 
 
