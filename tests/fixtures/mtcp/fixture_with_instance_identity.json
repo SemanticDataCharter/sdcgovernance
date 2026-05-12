@@ -1,0 +1,45 @@
+{
+  "name": "with_instance_identity",
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "evaluate_decision",
+      "arguments": {
+        "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+        "extra_context": "{\"model_grade\": \"D\"}",
+        "instance_id": "gpt-4o",
+        "instance_version": "2024-08-06"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "decision": "DENY",
+      "matched_rules": [
+        0
+      ],
+      "reasoning": "First matching rule (#0): Low model grade rejected",
+      "errors": [],
+      "receipt": {
+        "decision": "DENY",
+        "reasoning": "First matching rule (#0): Low model grade rejected",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "gpt-4o",
+        "instance_version": "2024-08-06",
+        "timestamp": "2026-05-10T15:00:00Z",
+        "previous_hash": null,
+        "receipt_hash": "28110b698dcb6c4f80de9ade4a827feaf010bda7a598e28b1367d237e209084e",
+        "dimensions_checked": [
+          "model_grade"
+        ],
+        "errors": [],
+        "context_hash": ""
+      }
+    }
+  }
+}

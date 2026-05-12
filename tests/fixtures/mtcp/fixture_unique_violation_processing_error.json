@@ -1,0 +1,48 @@
+{
+  "name": "unique_violation_processing_error",
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "tools/call",
+    "params": {
+      "name": "evaluate_decision",
+      "arguments": {
+        "table_json": "{\"name\": \"unique_conflict\", \"hit_policy\": \"UNIQUE\", \"rules\": [{\"conditions\": [{\"field\": \"x\", \"op\": \"==\", \"value\": 1}], \"outcome\": \"PERMIT\"}, {\"conditions\": [{\"field\": \"x\", \"op\": \"==\", \"value\": 1}], \"outcome\": \"DENY\"}]}",
+        "extra_context": "{\"x\": 1}"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": {
+      "decision": "INDETERMINATE",
+      "matched_rules": [
+        0,
+        1
+      ],
+      "reasoning": "UNIQUE hit policy violated: 2 rules matched",
+      "errors": [
+        "UNIQUE hit policy requires exactly 1 match, but 2 rules matched: [0, 1]"
+      ],
+      "receipt": {
+        "decision": "INDETERMINATE",
+        "reasoning": "UNIQUE hit policy violated: 2 rules matched",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:processing-error",
+        "obligations": [],
+        "instance_id": "",
+        "instance_version": "",
+        "timestamp": "2026-05-10T15:00:00Z",
+        "previous_hash": null,
+        "receipt_hash": "ea828d6c95e73ae579d62191ea9ff19c101c49195e0c1c29d99dfa05bed03ea9",
+        "dimensions_checked": [
+          "x"
+        ],
+        "errors": [
+          "UNIQUE hit policy requires exactly 1 match, but 2 rules matched: [0, 1]"
+        ],
+        "context_hash": ""
+      }
+    }
+  }
+}

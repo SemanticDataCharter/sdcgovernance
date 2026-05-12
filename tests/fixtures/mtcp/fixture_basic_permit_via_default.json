@@ -1,0 +1,41 @@
+{
+  "name": "basic_permit_via_default",
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "evaluate_decision",
+      "arguments": {
+        "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+        "extra_context": "{\"model_grade\": \"A\"}"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "decision": "PERMIT",
+      "matched_rules": [
+        1
+      ],
+      "reasoning": "First matching rule (#1)",
+      "errors": [],
+      "receipt": {
+        "decision": "PERMIT",
+        "reasoning": "First matching rule (#1)",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "",
+        "instance_version": "",
+        "timestamp": "2026-05-10T15:00:00Z",
+        "previous_hash": null,
+        "receipt_hash": "8ca12093045fc18ce1a6c8121115ad46e006a3ff78b47d00d27e732b3d51d125",
+        "dimensions_checked": [],
+        "errors": [],
+        "context_hash": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "verify_evidence_pack_v3_worked_example",
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 10,
+    "method": "tools/call",
+    "params": {
+      "name": "verify_evidence_pack",
+      "arguments": {
+        "evidence_pack": "{\"model_id\": \"gpt-4o\", \"evaluation_timestamp\": \"2026-04-02T22:05:36.586110Z\", \"ve_cont\": 1.0, \"ve_form\": 0.9929, \"ve_dom\": 0.6071, \"ve_scope\": 0.0071, \"ve_lang\": 0.0, \"ve_decay_rate\": 0.9929, \"regime_classification\": \"R3\", \"cpd_score\": 10.7, \"overall_grade\": \"C\", \"bis_t0\": 65.1, \"bis_t03\": 65.0, \"bis_t07\": 64.6, \"bis_t10\": 66.0, \"constraint_state_hash\": \"b2cf12b51e411ec3ca1bd28d856cef8c7c25705d893395c131d8c8764ee1e350\", \"eu_ai_act_art9\": true, \"eu_ai_act_art61\": true, \"nist_ai_rmf\": true, \"nca\": false, \"turn_count\": 5600, \"correction_count\": 1950, \"drift_detected\": false, \"evidence_pack_hash\": \"89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283\"}"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 10,
+    "result": {
+      "valid": true,
+      "computed_hash": "89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283",
+      "expected_hash": "89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283"
+    }
+  }
+}

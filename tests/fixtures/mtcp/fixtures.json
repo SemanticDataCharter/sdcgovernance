@@ -1,0 +1,427 @@
+{
+  "sdcgovernance_version": "4.0.4",
+  "pinned_timestamp": "2026-05-10T15:00:00Z",
+  "canonicalization": "RFC 8785: sort_keys=True, separators=(',', ':'), ensure_ascii=False",
+  "notes": "Each fixture is a JSON-RPC 2.0 request/response pair against the sdcgovernance MCP server. Timestamps in the response receipts are pinned to the value above so receipt_hash is reproducible. To verify: install sdcgovernance==4.0.4, construct a Receipt with the same content fields and the pinned timestamp, and check that receipt.receipt_hash matches.",
+  "fixtures": [
+    {
+      "name": "basic_deny",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+          "name": "evaluate_decision",
+          "arguments": {
+            "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+            "extra_context": "{\"model_grade\": \"D\"}"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "decision": "DENY",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "First matching rule (#0): Low model grade rejected",
+          "errors": [],
+          "receipt": {
+            "decision": "DENY",
+            "reasoning": "First matching rule (#0): Low model grade rejected",
+            "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+            "obligations": [],
+            "instance_id": "",
+            "instance_version": "",
+            "timestamp": "2026-05-10T15:00:00Z",
+            "previous_hash": null,
+            "receipt_hash": "88e6bf55efd85c68901d8b2003896dc31209ae774b583bc43517bf611ba82197",
+            "dimensions_checked": [
+              "model_grade"
+            ],
+            "errors": [],
+            "context_hash": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "basic_permit_via_default",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/call",
+        "params": {
+          "name": "evaluate_decision",
+          "arguments": {
+            "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+            "extra_context": "{\"model_grade\": \"A\"}"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {
+          "decision": "PERMIT",
+          "matched_rules": [
+            1
+          ],
+          "reasoning": "First matching rule (#1)",
+          "errors": [],
+          "receipt": {
+            "decision": "PERMIT",
+            "reasoning": "First matching rule (#1)",
+            "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+            "obligations": [],
+            "instance_id": "",
+            "instance_version": "",
+            "timestamp": "2026-05-10T15:00:00Z",
+            "previous_hash": null,
+            "receipt_hash": "8ca12093045fc18ce1a6c8121115ad46e006a3ff78b47d00d27e732b3d51d125",
+            "dimensions_checked": [],
+            "errors": [],
+            "context_hash": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "with_instance_identity",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+          "name": "evaluate_decision",
+          "arguments": {
+            "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+            "extra_context": "{\"model_grade\": \"D\"}",
+            "instance_id": "gpt-4o",
+            "instance_version": "2024-08-06"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "result": {
+          "decision": "DENY",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "First matching rule (#0): Low model grade rejected",
+          "errors": [],
+          "receipt": {
+            "decision": "DENY",
+            "reasoning": "First matching rule (#0): Low model grade rejected",
+            "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+            "obligations": [],
+            "instance_id": "gpt-4o",
+            "instance_version": "2024-08-06",
+            "timestamp": "2026-05-10T15:00:00Z",
+            "previous_hash": null,
+            "receipt_hash": "28110b698dcb6c4f80de9ade4a827feaf010bda7a598e28b1367d237e209084e",
+            "dimensions_checked": [
+              "model_grade"
+            ],
+            "errors": [],
+            "context_hash": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "multi_field_deny",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "method": "tools/call",
+        "params": {
+          "name": "evaluate_decision",
+          "arguments": {
+            "table_json": "{\"name\": \"multi_field\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"regime\", \"op\": \"==\", \"value\": \"R3\"}, {\"field\": \"data_class\", \"op\": \">=\", \"value\": \"Restricted\"}], \"outcome\": \"DENY\"}]}",
+            "extra_context": "{\"regime\": \"R3\", \"data_class\": \"Restricted\"}"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 4,
+        "result": {
+          "decision": "DENY",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "First matching rule (#0)",
+          "errors": [],
+          "receipt": {
+            "decision": "DENY",
+            "reasoning": "First matching rule (#0)",
+            "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+            "obligations": [],
+            "instance_id": "",
+            "instance_version": "",
+            "timestamp": "2026-05-10T15:00:00Z",
+            "previous_hash": null,
+            "receipt_hash": "191ff72564d86d8775e8a2d98d871beec258ac5a3ef57fd98749e7ecda8e6ec2",
+            "dimensions_checked": [
+              "regime",
+              "data_class"
+            ],
+            "errors": [],
+            "context_hash": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "no_match_not_applicable",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "tools/call",
+        "params": {
+          "name": "evaluate_decision",
+          "arguments": {
+            "table_json": "{\"name\": \"no_match\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"x\", \"op\": \"==\", \"value\": \"y\"}], \"outcome\": \"PERMIT\"}]}",
+            "extra_context": "{\"x\": \"z\"}"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "result": {
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'no_match'",
+          "errors": [],
+          "receipt": {
+            "decision": "NOT_APPLICABLE",
+            "reasoning": "No rules matched in decision table 'no_match'",
+            "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+            "obligations": [],
+            "instance_id": "",
+            "instance_version": "",
+            "timestamp": "2026-05-10T15:00:00Z",
+            "previous_hash": null,
+            "receipt_hash": "30eeb41a501d55e28da1c8780bc23e58d8a07f6119cc783240dfdd72cb1359f3",
+            "dimensions_checked": [],
+            "errors": [],
+            "context_hash": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "unique_violation_processing_error",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "method": "tools/call",
+        "params": {
+          "name": "evaluate_decision",
+          "arguments": {
+            "table_json": "{\"name\": \"unique_conflict\", \"hit_policy\": \"UNIQUE\", \"rules\": [{\"conditions\": [{\"field\": \"x\", \"op\": \"==\", \"value\": 1}], \"outcome\": \"PERMIT\"}, {\"conditions\": [{\"field\": \"x\", \"op\": \"==\", \"value\": 1}], \"outcome\": \"DENY\"}]}",
+            "extra_context": "{\"x\": 1}"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 6,
+        "result": {
+          "decision": "INDETERMINATE",
+          "matched_rules": [
+            0,
+            1
+          ],
+          "reasoning": "UNIQUE hit policy violated: 2 rules matched",
+          "errors": [
+            "UNIQUE hit policy requires exactly 1 match, but 2 rules matched: [0, 1]"
+          ],
+          "receipt": {
+            "decision": "INDETERMINATE",
+            "reasoning": "UNIQUE hit policy violated: 2 rules matched",
+            "status_code": "urn:oasis:names:tc:xacml:1.0:status:processing-error",
+            "obligations": [],
+            "instance_id": "",
+            "instance_version": "",
+            "timestamp": "2026-05-10T15:00:00Z",
+            "previous_hash": null,
+            "receipt_hash": "ea828d6c95e73ae579d62191ea9ff19c101c49195e0c1c29d99dfa05bed03ea9",
+            "dimensions_checked": [
+              "x"
+            ],
+            "errors": [
+              "UNIQUE hit policy requires exactly 1 match, but 2 rules matched: [0, 1]"
+            ],
+            "context_hash": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "chain_genesis_then_link",
+      "first": {
+        "request": {
+          "jsonrpc": "2.0",
+          "id": 7,
+          "method": "tools/call",
+          "params": {
+            "name": "evaluate_decision",
+            "arguments": {
+              "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+              "extra_context": "{\"model_grade\": \"D\"}",
+              "instance_id": "gpt-4o"
+            }
+          }
+        },
+        "response": {
+          "jsonrpc": "2.0",
+          "id": 7,
+          "result": {
+            "decision": "DENY",
+            "matched_rules": [
+              0
+            ],
+            "reasoning": "First matching rule (#0): Low model grade rejected",
+            "errors": [],
+            "receipt": {
+              "decision": "DENY",
+              "reasoning": "First matching rule (#0): Low model grade rejected",
+              "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+              "obligations": [],
+              "instance_id": "gpt-4o",
+              "instance_version": "",
+              "timestamp": "2026-05-10T15:00:00Z",
+              "previous_hash": null,
+              "receipt_hash": "34c2b9c6476bedc281d2912c05efc3472666932f8d0d226091e445440c9f9c85",
+              "dimensions_checked": [
+                "model_grade"
+              ],
+              "errors": [],
+              "context_hash": ""
+            }
+          }
+        }
+      },
+      "second": {
+        "request": {
+          "jsonrpc": "2.0",
+          "id": 8,
+          "method": "tools/call",
+          "params": {
+            "name": "evaluate_decision",
+            "arguments": {
+              "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+              "extra_context": "{\"model_grade\": \"B\"}",
+              "instance_id": "gpt-4o",
+              "previous_hash": "34c2b9c6476bedc281d2912c05efc3472666932f8d0d226091e445440c9f9c85"
+            }
+          }
+        },
+        "response": {
+          "jsonrpc": "2.0",
+          "id": 8,
+          "result": {
+            "decision": "PERMIT",
+            "matched_rules": [
+              1
+            ],
+            "reasoning": "First matching rule (#1)",
+            "errors": [],
+            "receipt": {
+              "decision": "PERMIT",
+              "reasoning": "First matching rule (#1)",
+              "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+              "obligations": [],
+              "instance_id": "gpt-4o",
+              "instance_version": "",
+              "timestamp": "2026-05-10T15:00:00Z",
+              "previous_hash": "34c2b9c6476bedc281d2912c05efc3472666932f8d0d226091e445440c9f9c85",
+              "receipt_hash": "2c0ca5763f9ad70a58aa4149343e703b226c4fa50204e08e136985b0274d43b8",
+              "dimensions_checked": [],
+              "errors": [],
+              "context_hash": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "mtcp_gpt4o_full_worked_example",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "method": "tools/call",
+        "params": {
+          "name": "evaluate_decision",
+          "arguments": {
+            "table_json": "{\"name\": \"mtcp_deployment_governance\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"regime_classification\", \"op\": \"==\", \"value\": \"R3\"}, {\"field\": \"data_classification\", \"op\": \">=\", \"value\": \"Restricted\"}], \"outcome\": \"DENY\", \"description\": \"MTCP-R1: Regime 3 model denied for restricted data processing\"}, {\"conditions\": [{\"field\": \"ve_lang\", \"op\": \"<\", \"value\": 0.7}, {\"field\": \"jurisdiction\", \"op\": \"==\", \"value\": \"multilingual\"}], \"outcome\": \"DENY\", \"description\": \"MTCP-R2: Language constraint failure rate unacceptable for multilingual deployment\"}, {\"conditions\": [{\"field\": \"overall_grade\", \"op\": \"==\", \"value\": \"F\"}], \"outcome\": \"DENY\", \"description\": \"MTCP-R3: Model failed minimum constraint reliability threshold\"}, {\"conditions\": [{\"field\": \"cpd_score\", \"op\": \">\", \"value\": 15}], \"outcome\": \"DENY\", \"description\": \"MTCP-R4: Benchmark contamination too high for reliable evidence\"}, {\"conditions\": [{\"field\": \"regime_classification\", \"op\": \"==\", \"value\": \"R1\"}, {\"field\": \"overall_grade\", \"op\": \"in\", \"value\": [\"A\", \"B\"]}], \"outcome\": \"PERMIT\", \"description\": \"MTCP-R5: Model meets deployment-ready threshold\"}, {\"conditions\": [{\"field\": \"regime_classification\", \"op\": \"==\", \"value\": \"R2\"}, {\"field\": \"overall_grade\", \"op\": \"==\", \"value\": \"B\"}], \"outcome\": \"PERMIT\", \"description\": \"MTCP-R6: Stochastic failure manageable with operational controls\"}, {\"conditions\": [], \"outcome\": \"INDETERMINATE\", \"description\": \"MTCP-DEFAULT: Insufficient evidence for automated decision escalate for human review\"}]}",
+            "extra_context": "{\"model_id\": \"gpt-4o\", \"evaluation_timestamp\": \"2026-04-02T22:05:36.586110Z\", \"ve_cont\": 1.0, \"ve_form\": 0.9929, \"ve_dom\": 0.6071, \"ve_scope\": 0.0071, \"ve_lang\": 0.0, \"ve_decay_rate\": 0.9929, \"regime_classification\": \"R3\", \"cpd_score\": 10.7, \"overall_grade\": \"C\", \"bis_t0\": 65.1, \"bis_t03\": 65.0, \"bis_t07\": 64.6, \"bis_t10\": 66.0, \"constraint_state_hash\": \"b2cf12b51e411ec3ca1bd28d856cef8c7c25705d893395c131d8c8764ee1e350\", \"eu_ai_act_art9\": true, \"eu_ai_act_art61\": true, \"nist_ai_rmf\": true, \"nca\": false, \"turn_count\": 5600, \"correction_count\": 1950, \"drift_detected\": false, \"evidence_pack_hash\": \"89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283\", \"data_classification\": \"Restricted\", \"jurisdiction\": \"multilingual\"}",
+            "instance_id": "gpt-4o",
+            "instance_version": "2024-08-06",
+            "previous_hash": null,
+            "context_hash": "89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "result": {
+          "decision": "DENY",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "First matching rule (#0): MTCP-R1: Regime 3 model denied for restricted data processing",
+          "errors": [],
+          "receipt": {
+            "decision": "DENY",
+            "reasoning": "First matching rule (#0): MTCP-R1: Regime 3 model denied for restricted data processing",
+            "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+            "obligations": [],
+            "instance_id": "gpt-4o",
+            "instance_version": "2024-08-06",
+            "timestamp": "2026-05-10T15:00:00Z",
+            "previous_hash": null,
+            "receipt_hash": "b1d9d54abcc3b0a2a929b627807442d55dd1093445a9219667ca26bb7dcc6b66",
+            "dimensions_checked": [
+              "regime_classification",
+              "data_classification"
+            ],
+            "errors": [],
+            "context_hash": "89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283"
+          }
+        }
+      }
+    },
+    {
+      "name": "verify_evidence_pack_v3_worked_example",
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 10,
+        "method": "tools/call",
+        "params": {
+          "name": "verify_evidence_pack",
+          "arguments": {
+            "evidence_pack": "{\"model_id\": \"gpt-4o\", \"evaluation_timestamp\": \"2026-04-02T22:05:36.586110Z\", \"ve_cont\": 1.0, \"ve_form\": 0.9929, \"ve_dom\": 0.6071, \"ve_scope\": 0.0071, \"ve_lang\": 0.0, \"ve_decay_rate\": 0.9929, \"regime_classification\": \"R3\", \"cpd_score\": 10.7, \"overall_grade\": \"C\", \"bis_t0\": 65.1, \"bis_t03\": 65.0, \"bis_t07\": 64.6, \"bis_t10\": 66.0, \"constraint_state_hash\": \"b2cf12b51e411ec3ca1bd28d856cef8c7c25705d893395c131d8c8764ee1e350\", \"eu_ai_act_art9\": true, \"eu_ai_act_art61\": true, \"nist_ai_rmf\": true, \"nca\": false, \"turn_count\": 5600, \"correction_count\": 1950, \"drift_detected\": false, \"evidence_pack_hash\": \"89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283\"}"
+          }
+        }
+      },
+      "response": {
+        "jsonrpc": "2.0",
+        "id": 10,
+        "result": {
+          "valid": true,
+          "computed_hash": "89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283",
+          "expected_hash": "89586bf4507cca361db03bd9005d97ddaaec42d1b6dea61ad498965ae172d283"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "no_match_not_applicable",
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "tools/call",
+    "params": {
+      "name": "evaluate_decision",
+      "arguments": {
+        "table_json": "{\"name\": \"no_match\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"x\", \"op\": \"==\", \"value\": \"y\"}], \"outcome\": \"PERMIT\"}]}",
+        "extra_context": "{\"x\": \"z\"}"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": {
+      "decision": "NOT_APPLICABLE",
+      "matched_rules": [],
+      "reasoning": "No rules matched in decision table 'no_match'",
+      "errors": [],
+      "receipt": {
+        "decision": "NOT_APPLICABLE",
+        "reasoning": "No rules matched in decision table 'no_match'",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "",
+        "instance_version": "",
+        "timestamp": "2026-05-10T15:00:00Z",
+        "previous_hash": null,
+        "receipt_hash": "30eeb41a501d55e28da1c8780bc23e58d8a07f6119cc783240dfdd72cb1359f3",
+        "dimensions_checked": [],
+        "errors": [],
+        "context_hash": ""
+      }
+    }
+  }
+}

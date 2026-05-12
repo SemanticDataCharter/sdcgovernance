@@ -1,0 +1,88 @@
+{
+  "name": "chain_genesis_then_link",
+  "first": {
+    "request": {
+      "jsonrpc": "2.0",
+      "id": 7,
+      "method": "tools/call",
+      "params": {
+        "name": "evaluate_decision",
+        "arguments": {
+          "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+          "extra_context": "{\"model_grade\": \"D\"}",
+          "instance_id": "gpt-4o"
+        }
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": 7,
+      "result": {
+        "decision": "DENY",
+        "matched_rules": [
+          0
+        ],
+        "reasoning": "First matching rule (#0): Low model grade rejected",
+        "errors": [],
+        "receipt": {
+          "decision": "DENY",
+          "reasoning": "First matching rule (#0): Low model grade rejected",
+          "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+          "obligations": [],
+          "instance_id": "gpt-4o",
+          "instance_version": "",
+          "timestamp": "2026-05-10T15:00:00Z",
+          "previous_hash": null,
+          "receipt_hash": "34c2b9c6476bedc281d2912c05efc3472666932f8d0d226091e445440c9f9c85",
+          "dimensions_checked": [
+            "model_grade"
+          ],
+          "errors": [],
+          "context_hash": ""
+        }
+      }
+    }
+  },
+  "second": {
+    "request": {
+      "jsonrpc": "2.0",
+      "id": 8,
+      "method": "tools/call",
+      "params": {
+        "name": "evaluate_decision",
+        "arguments": {
+          "table_json": "{\"name\": \"model_grade_check\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"model_grade\", \"op\": \"in\", \"value\": [\"D\", \"F\"]}], \"outcome\": \"DENY\", \"description\": \"Low model grade rejected\"}, {\"conditions\": [], \"outcome\": \"PERMIT\"}]}",
+          "extra_context": "{\"model_grade\": \"B\"}",
+          "instance_id": "gpt-4o",
+          "previous_hash": "34c2b9c6476bedc281d2912c05efc3472666932f8d0d226091e445440c9f9c85"
+        }
+      }
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": 8,
+      "result": {
+        "decision": "PERMIT",
+        "matched_rules": [
+          1
+        ],
+        "reasoning": "First matching rule (#1)",
+        "errors": [],
+        "receipt": {
+          "decision": "PERMIT",
+          "reasoning": "First matching rule (#1)",
+          "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+          "obligations": [],
+          "instance_id": "gpt-4o",
+          "instance_version": "",
+          "timestamp": "2026-05-10T15:00:00Z",
+          "previous_hash": "34c2b9c6476bedc281d2912c05efc3472666932f8d0d226091e445440c9f9c85",
+          "receipt_hash": "2c0ca5763f9ad70a58aa4149343e703b226c4fa50204e08e136985b0274d43b8",
+          "dimensions_checked": [],
+          "errors": [],
+          "context_hash": ""
+        }
+      }
+    }
+  }
+}

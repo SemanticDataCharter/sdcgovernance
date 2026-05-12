@@ -1,0 +1,44 @@
+{
+  "name": "multi_field_deny",
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "tools/call",
+    "params": {
+      "name": "evaluate_decision",
+      "arguments": {
+        "table_json": "{\"name\": \"multi_field\", \"hit_policy\": \"FIRST\", \"rules\": [{\"conditions\": [{\"field\": \"regime\", \"op\": \"==\", \"value\": \"R3\"}, {\"field\": \"data_class\", \"op\": \">=\", \"value\": \"Restricted\"}], \"outcome\": \"DENY\"}]}",
+        "extra_context": "{\"regime\": \"R3\", \"data_class\": \"Restricted\"}"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "result": {
+      "decision": "DENY",
+      "matched_rules": [
+        0
+      ],
+      "reasoning": "First matching rule (#0)",
+      "errors": [],
+      "receipt": {
+        "decision": "DENY",
+        "reasoning": "First matching rule (#0)",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "",
+        "instance_version": "",
+        "timestamp": "2026-05-10T15:00:00Z",
+        "previous_hash": null,
+        "receipt_hash": "191ff72564d86d8775e8a2d98d871beec258ac5a3ef57fd98749e7ecda8e6ec2",
+        "dimensions_checked": [
+          "regime",
+          "data_class"
+        ],
+        "errors": [],
+        "context_hash": ""
+      }
+    }
+  }
+}
