@@ -53,7 +53,7 @@ Both libraries read the schema from the instance. Agents call each one independe
 | **Party/Role** | Role constraints for governed actions | Acting party identification with required role |
 | **Provenance/Audit** | Provenance requirements (PROV-O) + retention policy (DPV) | PROV-formatted record(s) per retention policy: most recent + hash, last N, or full chain |
 
-Governance components are discovered by **vocabulary binding**, not by CUID2 identity. Any component bound to the right standard vocabulary (PROV-O, SCXML, VC, DPV) is recognized as a governance component - whether it comes from the Default project or was custom-built.
+Governance components are discovered by their **position in the DMType root** (fixed RM slots: workflow, attestation, party/role, audit, and related), not by CUID2 identity. Once a slot is found, its content is validated by **vocabulary binding** against the relevant standard (PROV-O, SCXML, VC, DPV). Any component occupying the right slot and bound to the right vocabulary is recognized - whether it comes from the Default project or was custom-built.
 
 ## Enforcement Decisions (OASIS XACML)
 
@@ -131,7 +131,7 @@ pip install sdcgovernance
 
 ## Status
 
-Pre-alpha. Planning phase. See [PLANNING.md](PLANNING.md) for the architecture and implementation roadmap.
+Production-ready. Available on [PyPI](https://pypi.org/project/sdcgovernance/) under Apache 2.0.
 
 ## Dependencies
 
