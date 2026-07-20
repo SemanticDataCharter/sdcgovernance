@@ -307,7 +307,12 @@ def record_provenance(
     )
 
 
-def provenance_to_rdf(records: list[ProvRecord], instance_id: str = "") -> str:
+def provenance_to_rdf(
+    records: list[ProvRecord],
+    instance_id: str = "",
+    source_instance_id: str = "",
+    source_version_id: str = "",
+) -> str:
     """
     Export provenance records as RDF/Turtle using W3C PROV-O vocabulary.
 
@@ -319,6 +324,9 @@ def provenance_to_rdf(records: list[ProvRecord], instance_id: str = "") -> str:
     Args:
         records: List of ProvRecord objects to export.
         instance_id: DM.instance_id for the entity URI.
+        source_instance_id: DM.source_instance_id, upstream source lineage.
+            When present, adds prov:wasDerivedFrom to a source entity.
+        source_version_id: DM.source_version_id, upstream source version.
 
     Returns:
         RDF/Turtle string. Returns empty string if rdflib is not installed.
@@ -337,6 +345,17 @@ def provenance_to_rdf(records: list[ProvRecord], instance_id: str = "") -> str:
 
     entity_uri = SDC[instance_id] if instance_id else BNode()
     g.add((entity_uri, RDF.type, PROV.Entity))
+
+    # Sovereign source lineage (Beale-Sovereignty): the SDC entity was derived
+    # from an upstream source-system record. Modeled as prov:wasDerivedFrom to a
+    # source entity carrying the RM-defined source identifiers.
+    if source_instance_id:
+        source_entity = BNode()
+        g.add((source_entity, RDF.type, PROV.Entity))
+        g.add((source_entity, SDC["source_instance_id"], Literal(source_instance_id)))
+        if source_version_id:
+            g.add((source_entity, SDC["source_version_id"], Literal(source_version_id)))
+        g.add((entity_uri, PROV.wasDerivedFrom, source_entity))
 
     for i, rec in enumerate(records):
         activity = SDC[f"activity-{i}"]

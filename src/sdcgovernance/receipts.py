@@ -120,6 +120,13 @@ class Receipt:
     instance_id: str = ""
     instance_version: str = ""
 
+    # Sovereign source lineage (from DM root, Beale-Sovereignty; 0..1 each).
+    # Preserves the upstream identifier and version from the originating
+    # source system (e.g. Epic, SAP) so the receipt chain records complete
+    # cross-boundary lineage, decoupled from the sovereign SDC identity.
+    source_instance_id: str = ""
+    source_version_id: str = ""
+
     # Temporal
     timestamp: str = field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -166,6 +173,13 @@ class Receipt:
             "errors": self.errors,
             "context_hash": self.context_hash,
         }
+        # Sovereign source lineage (Beale-Sovereignty): included in the hash
+        # only when present, so receipts without source fields hash identically
+        # to prior versions. Backward-compatible tamper evidence.
+        if self.source_instance_id:
+            content["source_instance_id"] = self.source_instance_id
+        if self.source_version_id:
+            content["source_version_id"] = self.source_version_id
         canonical = json.dumps(
             content,
             sort_keys=True,
@@ -222,6 +236,8 @@ class ReceiptChain:
         reasoning: str = "",
         instance_id: str = "",
         instance_version: str = "",
+        source_instance_id: str = "",
+        source_version_id: str = "",
         dimensions_checked: list[str] | None = None,
         errors: list[str] | None = None,
         status_code: StatusCode = StatusCode.OK,
@@ -241,6 +257,8 @@ class ReceiptChain:
             reasoning=reasoning,
             instance_id=instance_id,
             instance_version=instance_version,
+            source_instance_id=source_instance_id,
+            source_version_id=source_version_id,
             previous_hash=self.last_hash,
             dimensions_checked=dimensions_checked or [],
             errors=errors or [],

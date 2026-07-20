@@ -111,6 +111,8 @@ class GovernanceEngine:
         actor: str = "",
         instance_id: str = "",
         instance_version: str = "",
+        source_instance_id: str = "",
+        source_version_id: str = "",
         workflow_tree: WorkflowTree | None = None,
     ) -> GovernanceResult:
         """
@@ -122,6 +124,8 @@ class GovernanceEngine:
             actor: Identity of the actor requesting the transition.
             instance_id: DM.instance_id for receipt chain binding.
             instance_version: DM.instance_version for receipt chain binding.
+            source_instance_id: DM.source_instance_id, upstream source lineage.
+            source_version_id: DM.source_version_id, upstream source version.
             workflow_tree: Pre-parsed workflow tree.
 
         Returns:
@@ -133,6 +137,8 @@ class GovernanceEngine:
                 reasoning="Model does not define workflow governance",
                 instance_id=instance_id,
                 instance_version=instance_version,
+                source_instance_id=source_instance_id,
+                source_version_id=source_version_id,
                 dimensions_checked=["workflow"],
                 status_code=StatusCode.OK,
             )
@@ -150,6 +156,8 @@ class GovernanceEngine:
                 reasoning="Workflow governance defined but no workflow tree provided",
                 instance_id=instance_id,
                 instance_version=instance_version,
+                source_instance_id=source_instance_id,
+                source_version_id=source_version_id,
                 dimensions_checked=["workflow"],
                 errors=["No workflow tree available for validation"],
                 status_code=StatusCode.MISSING_ATTRIBUTE,
@@ -170,6 +178,8 @@ class GovernanceEngine:
                 reasoning=f"Current state '{current_state}' not found in any workflow path",
                 instance_id=instance_id,
                 instance_version=instance_version,
+                source_instance_id=source_instance_id,
+                source_version_id=source_version_id,
                 dimensions_checked=["workflow"],
                 errors=[f"Current state '{current_state}' is not a valid workflow state"],
             )
@@ -195,6 +205,8 @@ class GovernanceEngine:
                 ),
                 instance_id=instance_id,
                 instance_version=instance_version,
+                source_instance_id=source_instance_id,
+                source_version_id=source_version_id,
                 dimensions_checked=["workflow"],
             )
             return GovernanceResult(
@@ -211,6 +223,8 @@ class GovernanceEngine:
                 ),
                 instance_id=instance_id,
                 instance_version=instance_version,
+                source_instance_id=source_instance_id,
+                source_version_id=source_version_id,
                 dimensions_checked=["workflow"],
                 errors=[
                     f"Invalid transition: '{current_state}' -> '{target_state}'",

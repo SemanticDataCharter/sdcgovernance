@@ -306,12 +306,18 @@ def _handle_evaluate_transition(args: dict[str, Any]) -> Any:
     root = tree.getroot()
     instance_id = ""
     instance_version = ""
+    source_instance_id = ""
+    source_version_id = ""
     for elem in root:
         local = etree.QName(elem.tag).localname if isinstance(elem.tag, str) else ""
         if local == "instance_id" and elem.text:
             instance_id = elem.text.strip()
         elif local == "instance_version" and elem.text:
             instance_version = elem.text.strip()
+        elif local == "source_instance_id" and elem.text:
+            source_instance_id = elem.text.strip()
+        elif local == "source_version_id" and elem.text:
+            source_version_id = elem.text.strip()
 
     result = engine.evaluate_transition(
         current_state=current_state,
@@ -319,6 +325,8 @@ def _handle_evaluate_transition(args: dict[str, Any]) -> Any:
         actor=args.get("actor", ""),
         instance_id=instance_id,
         instance_version=instance_version,
+        source_instance_id=source_instance_id,
+        source_version_id=source_version_id,
         workflow_tree=workflow_tree,
     )
     return {

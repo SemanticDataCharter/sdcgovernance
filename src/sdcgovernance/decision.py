@@ -254,6 +254,14 @@ def build_context_from_instance(
     if elem is not None and elem.text:
         context["instance_id"] = elem.text.strip()
 
+    # source lineage (Beale-Sovereignty): upstream source identity, 0..1 each
+    for _src in ("source_instance_id", "source_version_id"):
+        elem = root.find(f"{{{SDC4_NS}}}{_src}")
+        if elem is None:
+            elem = root.find(_src)
+        if elem is not None and elem.text:
+            context[_src] = elem.text.strip()
+
     # current-state
     elem = root.find(f"{{{SDC4_NS}}}current-state")
     if elem is None:
