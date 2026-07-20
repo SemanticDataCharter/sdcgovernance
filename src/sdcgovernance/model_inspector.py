@@ -17,7 +17,7 @@ Slots inspected:
 - DM.acs (XdLinkType, 0..1) -> Access control / retention policy
 - DM.XdLink[] (XdLinkType, 0..*) -> Governed relationships
 
-Source of truth: /home/twcook/GitHub/SDCRM/sdc4/schemas/sdc4.xsd
+Source of truth: SDCRM sdc4/schemas/sdc4.xsd
 """
 
 from __future__ import annotations

@@ -239,3 +239,58 @@ class TestGovernanceResult:
         )
         assert result.receipt is not None
         assert result.receipt.decision == Decision.PERMIT
+
+
+class TestSourceLineage:
+    """Sovereign source lineage (Beale-Sovereignty) capture in receipts."""
+
+    def test_source_fields_captured_and_verify(self):
+        r = Receipt(
+            decision=Decision.PERMIT,
+            source_instance_id="epic-123",
+            source_version_id="v2",
+        )
+        assert r.source_instance_id == "epic-123"
+        assert r.source_version_id == "v2"
+        assert r.verify_hash()
+        d = r.to_dict()
+        assert d["source_instance_id"] == "epic-123"
+        assert d["source_version_id"] == "v2"
+
+    def test_empty_source_does_not_change_hash(self):
+        # Backward-compat: empty source fields have no effect on the hash, so
+        # receipts created before 4.1.0 remain verifiable.
+        ts = "2026-04-24T12:00:00Z"
+        r_default = Receipt(decision=Decision.PERMIT, instance_id="i1", timestamp=ts)
+        r_empty = Receipt(
+            decision=Decision.PERMIT,
+            instance_id="i1",
+            timestamp=ts,
+            source_instance_id="",
+            source_version_id="",
+        )
+        assert r_default.receipt_hash == r_empty.receipt_hash
+
+    def test_present_source_changes_hash(self):
+        ts = "2026-04-24T12:00:00Z"
+        r_no = Receipt(decision=Decision.PERMIT, instance_id="i1", timestamp=ts)
+        r_src = Receipt(
+            decision=Decision.PERMIT,
+            instance_id="i1",
+            timestamp=ts,
+            source_instance_id="epic-123",
+            source_version_id="v2",
+        )
+        assert r_no.receipt_hash != r_src.receipt_hash
+
+    def test_chain_append_threads_source(self):
+        chain = ReceiptChain()
+        r = chain.append(
+            decision=Decision.PERMIT,
+            instance_id="i1",
+            source_instance_id="sap-9",
+            source_version_id="rev4",
+        )
+        assert r.source_instance_id == "sap-9"
+        assert r.source_version_id == "rev4"
+        assert chain.verify_chain()

@@ -29,7 +29,7 @@ Basic usage::
 See https://github.com/SemanticDataCharter/sdcgovernance for documentation.
 """
 
-__version__ = "4.0.4"
+__version__ = "4.1.0"
 
 from sdcgovernance.engine import GovernanceEngine
 from sdcgovernance.model_inspector import GovernanceModel, inspect_model

@@ -321,3 +321,24 @@ class TestAuditRecordHash:
         r1 = AuditRecord(system_id="system-a", has_system_id=True, timestamp="2026-01-01", has_timestamp=True)
         r2 = AuditRecord(system_id="system-b", has_system_id=True, timestamp="2026-01-01", has_timestamp=True)
         assert r1.compute_hash() != r2.compute_hash()
+
+
+class TestRdfSourceLineage:
+    """Sovereign source lineage (Beale-Sovereignty) in PROV-O export."""
+
+    def test_export_emits_derivation(self):
+        rec = record_provenance("Create", "Dr. Smith", entity_id="cuid2-001")
+        turtle = provenance_to_rdf(
+            [rec],
+            instance_id="cuid2-001",
+            source_instance_id="epic-abc",
+            source_version_id="v3",
+        )
+        assert "wasDerivedFrom" in turtle
+        assert "epic-abc" in turtle
+        assert "v3" in turtle
+
+    def test_export_without_source_has_no_derivation(self):
+        rec = record_provenance("Create", "Dr. Smith", entity_id="cuid2-001")
+        turtle = provenance_to_rdf([rec], instance_id="cuid2-001")
+        assert "wasDerivedFrom" not in turtle
