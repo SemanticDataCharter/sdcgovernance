@@ -5,6 +5,16 @@ All notable changes to `sdcgovernance` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.1] - 2026-08-13
+
+### Added
+
+- **MCP registry publishing metadata.** Added a `server.json` (official MCP
+  registry format, schema `2025-12-11`) describing the built-in MCP server, and
+  an `mcp-name` ownership marker in the README so the package can be published to
+  the official MCP registry. No code or API changes; the MCP server itself is
+  unchanged (`uvx sdcgovernance`).
+
 ## [4.1.0] - 2026-07-20
 
 ### Added
