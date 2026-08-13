@@ -1,5 +1,7 @@
 # sdcgovernance
 
+<!-- mcp-name: io.github.SemanticDataCharter/sdcgovernance -->
+
 W3C standards-based governance advisory engine for Semantic Data Charter instances.
 
 A Python library that validates governance content in XML data instances against governance components defined in the SDC data model. If the model defines governance (workflow, attestation, party/role, provenance, audit), the instance must carry that content - and this library validates it.
