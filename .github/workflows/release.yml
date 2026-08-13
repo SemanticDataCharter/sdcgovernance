@@ -41,3 +41,33 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-mcp:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # GitHub OIDC for MCP Registry auth (io.github.SemanticDataCharter/*)
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Authenticate to MCP Registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        run: |
+          # Retry: PyPI can take a moment to expose the new release for ownership validation.
+          for attempt in 1 2 3 4 5; do
+            if ./mcp-publisher publish; then
+              echo "Published to the MCP registry."
+              exit 0
+            fi
+            echo "Attempt $attempt failed (PyPI may still be propagating); retrying in 30s..."
+            sleep 30
+          done
+          echo "::error::mcp-publisher publish failed after 5 attempts." >&2
+          exit 1
