@@ -42,7 +42,23 @@ from sdcgovernance.decision import (
 
 # Protocol constants
 JSONRPC_VERSION = "2.0"
-MCP_PROTOCOL_VERSION = "2024-11-05"
+# Protocol revisions this server actually implements, oldest to newest.
+#
+# 2025-11-25 is the newest *initialization-based* revision. The 2026-07-28
+# spec removes the initialize handshake entirely and moves protocol metadata
+# into per-request `_meta.io.modelcontextprotocol/*` fields, which is a
+# different architecture rather than a larger version number; that spec
+# defines a compatibility path for servers of this era, so advertising it
+# here would be a false conformance claim.
+#
+# 2024-11-05 and 2025-03-26 are deliberately absent: both require servers to
+# accept JSON-RPC batches, and this server reads exactly one JSON object per
+# line. Older clients still work, because negotiation lets us answer with a
+# version we do support.
+SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2025-11-25")
+
+#: Advertised when the client requests a revision we do not implement.
+MCP_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[-1]
 SERVER_NAME = "sdcgovernance"
 SERVER_VERSION = "4.0.4"
 
@@ -504,8 +520,17 @@ def _handle_request(request: dict) -> dict | None:
     req_id = request.get("id")
 
     if method == "initialize":
+        # Negotiate rather than assert: honour the client's revision when we
+        # implement it, otherwise answer with our newest and let the client
+        # decide whether to continue.
+        requested = params.get("protocolVersion")
+        negotiated = (
+            requested
+            if requested in SUPPORTED_PROTOCOL_VERSIONS
+            else MCP_PROTOCOL_VERSION
+        )
         result = {
-            "protocolVersion": MCP_PROTOCOL_VERSION,
+            "protocolVersion": negotiated,
             "capabilities": {
                 "tools": {"listChanged": False},
             },
@@ -549,9 +574,16 @@ def _handle_request(request: dict) -> dict | None:
                 ],
             })
         except Exception as exc:
-            return _jsonrpc_error(
-                req_id, -32000, f"Tool execution error: {exc}"
-            )
+            # SEP-1303: execution and input-validation failures are tool
+            # errors, not protocol errors. Returning them in the result lets
+            # the calling model see what went wrong and correct itself; a
+            # JSON-RPC error is invisible to it.
+            return _jsonrpc_response(req_id, {
+                "content": [
+                    {"type": "text", "text": f"Tool execution error: {exc}"}
+                ],
+                "isError": True,
+            })
 
     elif method == "ping":
         return _jsonrpc_response(req_id, {})

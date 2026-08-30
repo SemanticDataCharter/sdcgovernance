@@ -45,23 +45,45 @@ Without `context_hash`, a different Evidence Pack with the same field names matc
 
 ## Canonicalization spec
 
-Both `evidence_pack_hash` and `receipt_hash` use the same canonicalization, RFC 8785-aligned:
+★ **As of 4.2.0 these are two different canonicalizations. This is deliberate,
+and mixing them up will produce hashes that fail to verify.**
 
-- Keys sorted alphabetically.
-- No whitespace.
-- Comma-colon separators.
-- UTF-8, no ASCII escaping.
+| Hash | Canonicalization |
+|---|---|
+| `receipt_hash` (`sdcgovernance.receipts`) | **RFC 8785**, conformant |
+| `AuditRecord.compute_hash` (`sdcgovernance.provenance`) | **RFC 8785**, conformant |
+| `evidence_pack_hash` (`sdcgovernance.mtcp`) | **MTCP legacy convention** |
 
-Python equivalent:
+### Receipts and audit records: RFC 8785
+
+Use `sdcgovernance.jcs.canonicalize`. Published vectors are in
+`test-vectors/rfc8785-canonicalization.json`. Receipts carry a
+`canonicalization` field (`"rfc8785"`) inside the hashed content, so the
+scheme is committed to and cannot be reinterpreted. Receipts issued before
+4.2.0 verify by constructing them with
+`canonicalization=LEGACY_CANONICALIZATION`.
+
+### Evidence Packs: the MTCP convention
 
 ```python
 json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 ```
 
-This convention applies to:
-- `Receipt._compute_hash` in `sdcgovernance.receipts`.
-- `compute_evidence_pack_hash` in `sdcgovernance.mtcp`.
-- `AuditRecord.compute_hash` in `sdcgovernance.provenance`.
+Keys sorted by code point, no whitespace, comma-colon separators, UTF-8 with
+no ASCII escaping.
+
+**Why this is not RFC 8785, and why it stays that way for now.** MTCP is an
+external wire format: Evidence Pack hashes are produced by the MTCP
+evaluation pipeline and merely verified here, so both sides must
+canonicalize identically or verification fails in a way that looks like
+tampering. The published worked example (MTCP_SDC_Schema_Mapping V2, GPT-4o)
+contains integral floats such as `ve_cont: 1.0`, and its expected hash
+matches Python's `1.0` rendering rather than RFC 8785's required `1`. The
+MTCP convention is therefore the legacy one, and changing this side alone
+would invalidate every Evidence Pack MTCP issues.
+
+Migrating MTCP to RFC 8785 requires a coordinated version bump on both
+sides. Until then this is a documented, deliberate divergence.
 
 ## Verifying Evidence Pack integrity
 

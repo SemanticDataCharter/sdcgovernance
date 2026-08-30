@@ -128,3 +128,71 @@ class TestVerifyEvidencePack:
         result = verify_evidence_pack(ep)
         assert result["valid"] is True
         assert result["computed_hash"] == result["expected_hash"]
+
+
+class TestDualCanonicalizationAcceptance:
+    """
+    MTCP is migrating to conformant RFC 8785 (A. Abby, 2026-08-30). Until it
+    lands, Evidence Packs may arrive under either convention, and the two
+    disagree whenever a pack contains an integral float. Accepting both means
+    neither side needs a flag day.
+    """
+
+    # The published worked example, minus its hash.
+    EP = {
+        "model_id": "gpt-4o",
+        "evaluation_timestamp": "2026-04-02T22:05:36.586110Z",
+        "ve_cont": 1.0,          # integral floats: these are what diverge
+        "ve_form": 0.9929,
+        "ve_lang": 0.0,
+        "bis_t03": 65.0,
+        "bis_t10": 66.0,
+        "regime_classification": "R3",
+        "turn_count": 5600,
+        "drift_detected": False,
+    }
+
+    def _pack(self, hash_value):
+        return {**self.EP, "evidence_pack_hash": hash_value}
+
+    def test_legacy_pack_verifies_and_is_labelled(self):
+        from sdcgovernance.mtcp import compute_evidence_pack_hash
+
+        result = verify_evidence_pack(
+            self._pack(compute_evidence_pack_hash(self.EP))
+        )
+        assert result["valid"] is True
+        assert result["canonicalization"] == "mtcp-legacy"
+
+    def test_conformant_pack_verifies_and_is_labelled(self):
+        from sdcgovernance.mtcp import compute_evidence_pack_hash_rfc8785
+
+        result = verify_evidence_pack(
+            self._pack(compute_evidence_pack_hash_rfc8785(self.EP))
+        )
+        assert result["valid"] is True
+        assert result["canonicalization"] == "rfc8785"
+
+    def test_the_two_conventions_actually_differ_here(self):
+        """
+        Guards the premise. If these ever coincide, the dual-acceptance path
+        is untested by the two tests above.
+        """
+        from sdcgovernance.mtcp import (
+            compute_evidence_pack_hash,
+            compute_evidence_pack_hash_rfc8785,
+        )
+
+        assert compute_evidence_pack_hash(self.EP) != (
+            compute_evidence_pack_hash_rfc8785(self.EP)
+        )
+
+    def test_a_tampered_pack_still_fails_under_both(self):
+        result = verify_evidence_pack(self._pack("0" * 64))
+        assert result["valid"] is False
+        assert result["canonicalization"] == ""
+
+    def test_missing_hash_field_fails(self):
+        result = verify_evidence_pack(dict(self.EP))
+        assert result["valid"] is False
+        assert result["expected_hash"] == ""

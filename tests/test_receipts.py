@@ -94,10 +94,11 @@ class TestReceipt:
         r2 = Receipt(decision=Decision.PERMIT, timestamp=ts, context_hash="bbb")
         assert r1.receipt_hash != r2.receipt_hash
 
-    def test_receipt_canonicalization_no_whitespace(self):
-        """Hash uses RFC 8785-aligned canonicalization (no whitespace)."""
+    def test_receipt_canonicalization_is_rfc8785(self):
+        """Hash uses RFC 8785 canonicalization, with the scheme committed."""
         import hashlib
-        import json
+
+        from sdcgovernance.jcs import canonicalize
         r = Receipt(
             decision=Decision.PERMIT,
             reasoning="test",
@@ -114,11 +115,13 @@ class TestReceipt:
             "dimensions_checked": [],
             "errors": [],
             "context_hash": "",
+            # The scheme is part of the hashed content, so a receipt cannot
+            # be reinterpreted under the legacy canonicalization.
+            "canonicalization": "rfc8785",
         }
-        canonical = json.dumps(
-            content, sort_keys=True, separators=(",", ":"), ensure_ascii=False
-        )
-        expected = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        expected = hashlib.sha256(
+            canonicalize(content).encode("utf-8")
+        ).hexdigest()
         assert r.receipt_hash == expected
 
 
