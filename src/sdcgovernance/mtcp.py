@@ -37,6 +37,8 @@ import hashlib
 import json
 from typing import Any
 
+from sdcgovernance.jcs import canonicalize_bytes
+
 
 EVIDENCE_PACK_HASH_FIELD = "evidence_pack_hash"
 
@@ -73,23 +75,67 @@ def compute_evidence_pack_hash(evidence_pack: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(content).encode("utf-8")).hexdigest()
 
 
+def compute_evidence_pack_hash_rfc8785(evidence_pack: dict[str, Any]) -> str:
+    """
+    Compute an Evidence Pack hash using conformant RFC 8785 canonicalization.
+
+    Provided ahead of MTCP's own move to conformance (A. Abby, 2026-08-30) so
+    both conventions can be verified without a flag day. Once MTCP emits only
+    conformant hashes, this becomes the primary and ``canonical_json`` above
+    can retire.
+    """
+    content = {k: v for k, v in evidence_pack.items() if k != EVIDENCE_PACK_HASH_FIELD}
+    return hashlib.sha256(canonicalize_bytes(content)).hexdigest()
+
+
 def verify_evidence_pack(evidence_pack: dict[str, Any]) -> dict[str, Any]:
     """
     Verify the integrity of an MTCP Evidence Pack.
 
-    Recomputes evidence_pack_hash over the 23 non-hash fields and compares
-    to the value carried in the Evidence Pack itself.
+    Recomputes evidence_pack_hash over the 23 non-hash fields and compares to
+    the value carried in the Evidence Pack itself.
+
+    **Accepts either canonicalization.** MTCP is migrating from the legacy
+    convention to conformant RFC 8785, and the two produce different hashes
+    for the same Evidence Pack whenever it contains an integral float. Trying
+    both means an Evidence Pack verifies whichever side has migrated, so
+    neither implementation needs a flag day. Which one matched is reported
+    rather than hidden, because "it verified" and "it verified under the
+    scheme we expected" are different facts.
 
     Returns a dict with:
       - valid: bool
-      - computed_hash: str (the recomputed hash)
-      - expected_hash: str (the hash carried in the Evidence Pack, or
-        empty string if the field is missing)
+      - computed_hash: str (the hash under ``canonicalization``)
+      - expected_hash: str (the hash carried in the Evidence Pack, or empty
+        string if the field is missing)
+      - canonicalization: str ("rfc8785", "mtcp-legacy", or "" when the pack
+        did not verify under either)
     """
     expected = evidence_pack.get(EVIDENCE_PACK_HASH_FIELD, "")
-    computed = compute_evidence_pack_hash(evidence_pack)
+
+    conformant = compute_evidence_pack_hash_rfc8785(evidence_pack)
+    legacy = compute_evidence_pack_hash(evidence_pack)
+
+    if expected and expected == conformant:
+        return {
+            "valid": True,
+            "computed_hash": conformant,
+            "expected_hash": expected,
+            "canonicalization": "rfc8785",
+        }
+    if expected and expected == legacy:
+        return {
+            "valid": True,
+            "computed_hash": legacy,
+            "expected_hash": expected,
+            "canonicalization": "mtcp-legacy",
+        }
+
+    # Report the legacy hash on failure: it is still what MTCP publishes, so
+    # it is the more useful value to show when diagnosing a mismatch.
     return {
-        "valid": expected != "" and computed == expected,
-        "computed_hash": computed,
+        "valid": False,
+        "computed_hash": legacy,
         "expected_hash": expected,
+        "canonicalization": "",
     }

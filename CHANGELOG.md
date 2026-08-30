@@ -68,9 +68,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   4,043 cases including 4,000 randomly generated IEEE 754 bit patterns: zero
   disagreements.
 
+### Added
+
+- **`verify_evidence_pack` accepts either canonicalization** and reports which
+  one matched, via a new `canonicalization` key (`"rfc8785"`, `"mtcp-legacy"`,
+  or `""` on failure). MTCP is moving to conformance (A. Abby, 2026-08-30);
+  accepting both means neither implementation needs a flag day. Strictly
+  additive: nothing that verified before stops verifying.
+- **`compute_evidence_pack_hash_rfc8785`** for callers that want the
+  conformant hash explicitly.
+
 ### Unchanged, deliberately
 
-- **MTCP Evidence Pack hashing stays on the legacy convention.** MTCP is an
+- **MTCP Evidence Pack *emission* stays on the legacy convention** until MTCP
+  publishes its conformant implementation. MTCP is an
   external wire format whose hashes are produced by the MTCP evaluation
   pipeline, and its published worked example (GPT-4o, V2) contains integral
   floats whose expected hash matches Python's `1.0` rendering, not RFC 8785's
