@@ -26,6 +26,14 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from sdcgovernance.jcs import CANONICALIZATION_ID, canonicalize
+
+
+#: Marker for receipts hashed before RFC 8785 conformance. Such receipts have
+#: no ``canonicalization`` field on the wire; set this explicitly when loading
+#: one so ``verify_hash`` reproduces the bytes that were actually published.
+LEGACY_CANONICALIZATION = "legacy-json-dumps"
+
 
 class Decision(Enum):
     """
@@ -147,6 +155,13 @@ class Receipt:
     # MTCP consumers pass the Evidence Pack hash here.
     context_hash: str = ""
 
+    # Which canonicalization produced receipt_hash. Receipts written before
+    # RFC 8785 conformance carry no such field, and LEGACY_CANONICALIZATION
+    # reproduces their bytes so they still verify. New receipts commit to the
+    # scheme by including this field in the hashed content, so a verifier
+    # cannot be walked back to the weaker one.
+    canonicalization: str = CANONICALIZATION_ID
+
     def __post_init__(self) -> None:
         """Compute the receipt hash after initialization."""
         if not self.receipt_hash:
@@ -156,10 +171,14 @@ class Receipt:
         """
         Compute SHA-256 hash of the receipt content.
 
-        Canonicalization follows RFC 8785 conventions: keys sorted, no
-        whitespace, comma-colon separators, UTF-8 (no ASCII escaping).
-        Aligned with the MTCP Evidence Pack hash spec for cross-chain
-        verifiability.
+        Canonicalization is RFC 8785 (see ``sdcgovernance.jcs``), which is
+        conformant rather than merely similar: an independent implementation
+        derives the same bytes, which is the only reason the hash means
+        anything to anyone but us.
+
+        Receipts carrying ``canonicalization = LEGACY_CANONICALIZATION`` are
+        hashed the old way instead, so receipts issued before conformance
+        continue to verify rather than appearing to have been tampered with.
         """
         content = {
             "decision": self.decision.value,
@@ -180,12 +199,21 @@ class Receipt:
             content["source_instance_id"] = self.source_instance_id
         if self.source_version_id:
             content["source_version_id"] = self.source_version_id
-        canonical = json.dumps(
-            content,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=False,
-        )
+        if self.canonicalization == LEGACY_CANONICALIZATION:
+            # Bug-compatible with pre-conformance receipts. Do not "fix" this:
+            # its whole job is to reproduce bytes we already published.
+            canonical = json.dumps(
+                content,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            )
+        else:
+            # Commit to the scheme so the hash cannot be reinterpreted under
+            # the legacy one.
+            content["canonicalization"] = self.canonicalization
+            canonical = canonicalize(content)
+
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
     def verify_hash(self) -> bool:

@@ -1,0 +1,186 @@
+{
+  "$comment": "RFC 8785 (JCS) test vectors for sdcgovernance. Each entry gives a JSON input and the exact canonical string a conformant implementation must produce. Hash the UTF-8 encoding of `output`. Every vector here was cross-checked against Node.js before publication.",
+  "specification": "https://www.rfc-editor.org/rfc/rfc8785",
+  "canonicalization_id": "rfc8785",
+  "vector_count": 21,
+  "vectors": [
+    {
+      "description": "integral float loses the decimal point",
+      "input": {
+        "score": 1.0
+      },
+      "output": "{\"score\":1}"
+    },
+    {
+      "description": "zero and negative zero",
+      "input": {
+        "a": 0.0,
+        "b": -0.0,
+        "c": 0
+      },
+      "output": "{\"a\":0,\"b\":0,\"c\":0}"
+    },
+    {
+      "description": "fixed notation up to 1e21",
+      "input": {
+        "a": 1e+16,
+        "b": 1e+20
+      },
+      "output": "{\"a\":10000000000000000,\"b\":100000000000000000000}"
+    },
+    {
+      "description": "exponential at and beyond 1e21",
+      "input": {
+        "a": 1e+21,
+        "b": 1e+22
+      },
+      "output": "{\"a\":1e+21,\"b\":1e+22}"
+    },
+    {
+      "description": "small magnitudes",
+      "input": {
+        "a": 1e-06,
+        "b": 1e-07
+      },
+      "output": "{\"a\":0.000001,\"b\":1e-7}"
+    },
+    {
+      "description": "subnormal and max double",
+      "input": {
+        "a": 5e-324,
+        "b": 1.7976931348623157e+308
+      },
+      "output": "{\"a\":5e-324,\"b\":1.7976931348623157e+308}"
+    },
+    {
+      "description": "shortest round-trip digits",
+      "input": {
+        "a": 333333333.3333333,
+        "b": 0.1
+      },
+      "output": "{\"a\":333333333.3333333,\"b\":0.1}"
+    },
+    {
+      "description": "max safe integer",
+      "input": {
+        "a": 9007199254740991,
+        "b": -9007199254740991
+      },
+      "output": "{\"a\":9007199254740991,\"b\":-9007199254740991}"
+    },
+    {
+      "description": "negative values",
+      "input": {
+        "a": -1.0,
+        "b": -1.5
+      },
+      "output": "{\"a\":-1,\"b\":-1.5}"
+    },
+    {
+      "description": "two-character escapes",
+      "input": {
+        "s": "\b\t\n\f\r"
+      },
+      "output": "{\"s\":\"\\b\\t\\n\\f\\r\"}"
+    },
+    {
+      "description": "quote and backslash",
+      "input": {
+        "s": "\" \\"
+      },
+      "output": "{\"s\":\"\\\" \\\\\"}"
+    },
+    {
+      "description": "solidus is not escaped",
+      "input": {
+        "s": "a/b"
+      },
+      "output": "{\"s\":\"a/b\"}"
+    },
+    {
+      "description": "C0 controls use lowercase \\u00xx",
+      "input": {
+        "s": "\u0000\u0001\u001f"
+      },
+      "output": "{\"s\":\"\\u0000\\u0001\\u001f\"}"
+    },
+    {
+      "description": "non-ASCII is literal, not escaped",
+      "input": {
+        "s": "é 中文"
+      },
+      "output": "{\"s\":\"é 中文\"}"
+    },
+    {
+      "description": "astral plane character",
+      "input": {
+        "s": "😀"
+      },
+      "output": "{\"s\":\"😀\"}"
+    },
+    {
+      "description": "key order: astral sorts before BMP in UTF-16",
+      "input": {
+        "😀": 1,
+        "ﬀ": 2
+      },
+      "output": "{\"😀\":1,\"ﬀ\":2}"
+    },
+    {
+      "description": "key order: ASCII",
+      "input": {
+        "b": 1,
+        "A": 2,
+        "a": 3
+      },
+      "output": "{\"A\":2,\"a\":3,\"b\":1}"
+    },
+    {
+      "description": "empty containers",
+      "input": {
+        "o": {},
+        "a": []
+      },
+      "output": "{\"a\":[],\"o\":{}}"
+    },
+    {
+      "description": "literals",
+      "input": {
+        "n": null,
+        "t": true,
+        "f": false
+      },
+      "output": "{\"f\":false,\"n\":null,\"t\":true}"
+    },
+    {
+      "description": "nesting",
+      "input": {
+        "a": {
+          "b": [
+            1.0,
+            {
+              "c": 2.0
+            }
+          ]
+        }
+      },
+      "output": "{\"a\":{\"b\":[1,{\"c\":2}]}}"
+    },
+    {
+      "description": "realistic receipt shape",
+      "input": {
+        "decision": "PERMIT",
+        "timestamp": "2026-08-30T12:00:00Z",
+        "dimensions_checked": [
+          "workflow",
+          "attestation"
+        ],
+        "errors": [],
+        "previous_hash": null,
+        "score": 1.0,
+        "canonicalization": "rfc8785"
+      },
+      "output": "{\"canonicalization\":\"rfc8785\",\"decision\":\"PERMIT\",\"dimensions_checked\":[\"workflow\",\"attestation\"],\"errors\":[],\"previous_hash\":null,\"score\":1,\"timestamp\":\"2026-08-30T12:00:00Z\"}"
+    }
+  ]
+}
