@@ -10,6 +10,8 @@ import json
 import pytest
 from pathlib import Path
 from sdcgovernance.mcp_server import (
+    MCP_PROTOCOL_VERSION,
+    SUPPORTED_PROTOCOL_VERSIONS,
     _handle_request,
     _parse_decision_table,
     TOOLS,
@@ -626,3 +628,77 @@ class TestConsistentSerialization:
             # Must be valid JSON
             parsed = json.loads(content[0]["text"])
             assert parsed is not None, f"{tool_name} returned None"
+
+
+class TestProtocolVersionNegotiation:
+    """
+    initialize must negotiate, not assert. The server previously answered
+    with a hardcoded revision whatever the client asked for.
+    """
+
+    def _initialize(self, requested=None):
+        params = {} if requested is None else {"protocolVersion": requested}
+        return _handle_request({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": params,
+        })["result"]
+
+    @pytest.mark.parametrize("version", SUPPORTED_PROTOCOL_VERSIONS)
+    def test_supported_version_is_echoed(self, version):
+        assert self._initialize(version)["protocolVersion"] == version
+
+    def test_unsupported_version_falls_back_to_ours(self):
+        """
+        An older or newer client is answered with a revision we do implement,
+        and decides for itself whether to proceed.
+        """
+        for unsupported in ("2024-11-05", "2026-07-28", "not-a-version"):
+            assert (
+                self._initialize(unsupported)["protocolVersion"]
+                == MCP_PROTOCOL_VERSION
+            )
+
+    def test_absent_version_falls_back_to_ours(self):
+        assert self._initialize()["protocolVersion"] == MCP_PROTOCOL_VERSION
+
+    def test_advertised_version_is_the_newest_supported(self):
+        assert MCP_PROTOCOL_VERSION == SUPPORTED_PROTOCOL_VERSIONS[-1]
+
+    def test_initialization_based_revisions_only(self):
+        """
+        2026-07-28 removed the initialize handshake in favour of per-request
+        _meta fields. This server is initialization-based, so advertising it
+        would be a false conformance claim.
+        """
+        assert "2026-07-28" not in SUPPORTED_PROTOCOL_VERSIONS
+
+
+class TestToolErrorsAreToolErrors:
+    """
+    SEP-1303: execution and input-validation failures belong in the result
+    as isError, not in a JSON-RPC error, so the calling model can see them
+    and correct itself.
+    """
+
+    def test_execution_failure_returns_is_error_result(self):
+        response = _handle_request({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            # Missing every required argument, so the handler raises.
+            "params": {"name": "get_governance_status", "arguments": {}},
+        })
+
+        assert "error" not in response
+        result = response["result"]
+        assert result["isError"] is True
+        assert result["content"][0]["type"] == "text"
+
+    def test_unknown_tool_is_still_a_protocol_error(self):
+        """An unroutable method name is genuinely protocol-level."""
+        response = _handle_request({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": "no_such_tool", "arguments": {}},
+        })
+        assert response["error"]["code"] == -32601

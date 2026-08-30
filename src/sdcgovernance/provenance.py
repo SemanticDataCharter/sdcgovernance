@@ -31,13 +31,14 @@ Standards: W3C PROV-O (https://www.w3.org/TR/prov-o/)
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
 from lxml import etree
+
+from sdcgovernance.jcs import canonicalize_bytes
 
 try:
     from rdflib import Graph, Namespace, Literal, URIRef, BNode
@@ -83,7 +84,13 @@ class AuditRecord:
     record_hash: str = ""
 
     def compute_hash(self) -> str:
-        """Compute SHA-256 hash of this audit record's content."""
+        """
+        Compute SHA-256 hash of this audit record's content.
+
+        Canonicalization is RFC 8785 (``sdcgovernance.jcs``). These records
+        are all-string today, where RFC 8785 and the previous json.dumps
+        agree, so existing chains are unaffected.
+        """
         content = {
             "system_id": self.system_id,
             "system_user_name": self.system_user_name,
@@ -92,13 +99,7 @@ class AuditRecord:
             "timestamp": self.timestamp,
             "activity_type": self.activity_type,
         }
-        canonical = json.dumps(
-            content,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=False,
-        )
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        return hashlib.sha256(canonicalize_bytes(content)).hexdigest()
 
 
 @dataclass
