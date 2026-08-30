@@ -2,9 +2,11 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    # dev is the persistent integration branch, so PRs land there first.
+    # Without it, nothing was tested until it reached main.
+    branches: [main, dev]
 
 jobs:
   test:
