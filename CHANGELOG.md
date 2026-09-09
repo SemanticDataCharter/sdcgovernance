@@ -5,6 +5,20 @@ All notable changes to `sdcgovernance` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Package metadata corrected following a public footprint review (8 September 2026).**
+  - PyPI author changed from "Semantic Data Charter Foundation" to **Axius SDC, Inc.**
+    No such foundation exists as a legal entity, and a for-profit publishing under a
+    Foundation byline reads as open-source-washing in procurement review.
+  - `Development Status` classifier raised from `4 - Beta` to
+    `5 - Production/Stable`, resolving a contradiction with the README, which
+    said "Production-ready." Both statements were public.
+
+  Neither change affects the API or behaviour. Both appear on PyPI at the next release.
+
 ## [4.2.0] - 2026-08-30
 
 ### Changed
