@@ -60,7 +60,7 @@ SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2025-11-25")
 #: Advertised when the client requests a revision we do not implement.
 MCP_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[-1]
 SERVER_NAME = "sdcgovernance"
-SERVER_VERSION = "4.0.4"
+SERVER_VERSION = "4.2.1"
 
 # Engine cache
 _engines: dict[str, GovernanceEngine] = {}
