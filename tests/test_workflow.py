@@ -327,3 +327,36 @@ class TestGovernanceEngine:
             workflow_tree=branching_tree,
         )
         assert result.decision == Decision.PERMIT
+
+
+class TestReferenceModelValidInstance:
+    """
+    The reference model declares ``sdc4:XdOrdinal`` abstract, so a schema-valid
+    instance never carries that tag: states arrive inside ``sdc4:XdAdapter``
+    wrappers as ``XdAdapter-value`` with an ``xsi:type`` or as published
+    ``sdc4:ms-...`` components. The pre-4.2.1 parser matched tag names and read
+    no states from any valid instance. This fixture validates against a real
+    published SDC4 model with the reference model included.
+    """
+
+    def test_states_are_found_by_content(self):
+        current_state, tree = extract_workflow_from_instance(
+            str(FIXTURES / "instance-rm-valid-workflow.xml")
+        )
+        assert current_state == "draft"
+        assert tree is not None
+        assert [p.label for p in tree.paths] == ["Main Path"]
+        assert tree.paths[0].state_symbols == ["draft", "review", "published"]
+
+    def test_transitions_follow_the_valid_instance(self):
+        _, tree = extract_workflow_from_instance(
+            str(FIXTURES / "instance-rm-valid-workflow.xml")
+        )
+        assert [t["target_symbol"] for t in tree.get_allowed_transitions("draft")] == ["review"]
+        assert tree.is_valid_transition("review", "published")
+        assert not tree.is_valid_transition("draft", "published")
+
+    def test_legacy_fixture_shape_still_parses(self):
+        """The bare-XdOrdinal shape the old fixtures use keeps working."""
+        _, tree = extract_workflow_from_instance(str(FIXTURES / "instance-linear-workflow.xml"))
+        assert tree.paths[0].state_symbols == ["draft", "review", "approved", "published"]

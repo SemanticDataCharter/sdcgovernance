@@ -331,58 +331,88 @@ def _extract_ordinal_enumerations(
     return states
 
 
+def _local(elem: etree._Element) -> str:
+    return etree.QName(elem.tag).localname if isinstance(elem.tag, str) else ""
+
+
+def _is_state_element(elem: etree._Element) -> bool:
+    """
+    A workflow state is recognised by its CONTENT, not its tag.
+
+    In the SDC4 reference model ``sdc4:XdOrdinal`` is an abstract element, so
+    no valid instance ever carries that tag. A state arrives as a published
+    component (``sdc4:ms-...``, typed by a restriction of ``XdOrdinalType``) or
+    as ``sdc4:XdAdapter-value`` with ``xsi:type="sdc4:XdOrdinalType"``, in
+    either case inside an ``sdc4:XdAdapter`` wrapper. What every one of those
+    has in common is the pair of children ``XdOrdinalType`` requires:
+    ``ordinal`` and ``symbol``. That is the test.
+    """
+    if not isinstance(elem.tag, str):
+        return False
+    names = {_local(c) for c in elem}
+    return "ordinal" in names and "symbol" in names
+
+
+#: Wrappers between a path and its states that are not themselves paths.
+_TRANSPARENT = {"XdAdapter", "XdAdapter-value"}
+
+
 def _parse_workflow_cluster(workflow_elem: etree._Element) -> WorkflowTree:
     """
     Parse a workflow ClusterType element from an XML instance.
 
-    The workflow element contains sub-clusters (paths) with
-    XdOrdinal items (states). This function extracts the tree structure.
+    The workflow element contains sub-clusters (paths) whose items are ordinal
+    states. Paths and states are found by content rather than by tag name,
+    because the reference model's ``XdOrdinal`` and ``Cluster`` elements are
+    abstract or substituted in real instances (a path is ``sdc4:Cluster`` or a
+    published ``sdc4:ms-...`` cluster; a state is an ``sdc4:ms-...`` component
+    or an ``XdAdapter-value`` with an ``xsi:type``). The pre-4.2.1 parser
+    matched the literal tags ``Cluster`` and ``XdOrdinal`` and therefore read
+    no states from any schema-valid instance.
     """
     workflow_tree = WorkflowTree()
 
-    # Get workflow label
     label_elem = workflow_elem.find(f"{{{SDC4_NS}}}label")
     if label_elem is None:
         label_elem = workflow_elem.find("label")
     if label_elem is not None and label_elem.text:
         workflow_tree.label = label_elem.text.strip()
 
-    # Look for sub-clusters (Cluster elements within the workflow)
-    for cluster in workflow_elem.iter():
-        tag = etree.QName(cluster.tag).localname if isinstance(cluster.tag, str) else ""
-        if tag == "Cluster" or (cluster.tag and "Cluster" in str(cluster.tag)):
-            path = _parse_path_cluster(cluster)
-            if path.states:
-                workflow_tree.paths.append(path)
+    # Group states by the nearest ancestor that is not an adapter wrapper:
+    # that ancestor is the path (a sub-cluster), or the workflow element
+    # itself when the states sit directly in it.
+    paths: dict[int, tuple[etree._Element, list[etree._Element]]] = {}
+    order: list[int] = []
+    for elem in workflow_elem.iter():
+        if not _is_state_element(elem):
+            continue
+        parent = elem.getparent()
+        while parent is not None and parent is not workflow_elem and _local(parent) in _TRANSPARENT:
+            parent = parent.getparent()
+        if parent is None:
+            parent = workflow_elem
+        key = id(parent)
+        if key not in paths:
+            paths[key] = (parent, [])
+            order.append(key)
+        paths[key][1].append(elem)
 
-    # If no sub-clusters found, treat the workflow itself as a single path
-    if not workflow_tree.paths:
-        path = _parse_path_cluster(workflow_elem)
+    for key in order:
+        container, state_elems = paths[key]
+        path = WorkflowPath()
+        label_elem = container.find(f"{{{SDC4_NS}}}label")
+        if label_elem is None:
+            label_elem = container.find("label")
+        if label_elem is not None and label_elem.text:
+            path.label = label_elem.text.strip()
+        for state_elem in state_elems:
+            state = _parse_ordinal_state(state_elem)
+            if state is not None:
+                path.states.append(state)
         if path.states:
             workflow_tree.paths.append(path)
 
     return workflow_tree
-
-
-def _parse_path_cluster(cluster_elem: etree._Element) -> WorkflowPath:
-    """Parse a single path cluster, extracting XdOrdinal states."""
-    path = WorkflowPath()
-
-    label_elem = cluster_elem.find(f"{{{SDC4_NS}}}label")
-    if label_elem is None:
-        label_elem = cluster_elem.find("label")
-    if label_elem is not None and label_elem.text:
-        path.label = label_elem.text.strip()
-
-    # Find XdOrdinal elements
-    for elem in cluster_elem.iter():
-        tag = etree.QName(elem.tag).localname if isinstance(elem.tag, str) else ""
-        if tag == "XdOrdinal" or (elem.tag and "XdOrdinal" in str(elem.tag)):
-            state = _parse_ordinal_state(elem)
-            if state is not None:
-                path.states.append(state)
-
-    return path
 
 
 def _parse_ordinal_state(ordinal_elem: etree._Element) -> WorkflowState | None:

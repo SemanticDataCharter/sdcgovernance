@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **★ The instance workflow parser now reads reference-model-valid instances.**
+  `extract_workflow_from_instance` located states by matching the literal tag
+  names `Cluster` and `XdOrdinal`. In the SDC4 reference model `sdc4:XdOrdinal`
+  is an abstract element, so no schema-valid instance ever carries that tag:
+  a state arrives inside an `sdc4:XdAdapter` wrapper as an `XdAdapter-value`
+  with `xsi:type="sdc4:XdOrdinalType"` or as a published `sdc4:ms-...`
+  component. The parser therefore returned an empty tree for every valid
+  instance, and the engine answered INDETERMINATE (no workflow tree) for
+  models that carried a workflow. Only the hand-written test fixtures, which
+  are not schema-valid, ever parsed.
+
+  States are now recognised by content: an element with both `ordinal` and
+  `symbol` children, which `XdOrdinalType` requires. A path is the nearest
+  ancestor that is not an adapter wrapper. The legacy fixture shape still
+  parses. A new fixture, `instance-rm-valid-workflow.xml`, is a real generated
+  instance of a published SDC4 model that validates against the reference
+  model with zero errors.
+
 ### Changed
 
 - **Package metadata corrected following a public footprint review (8 September 2026).**
