@@ -702,3 +702,98 @@ class TestToolErrorsAreToolErrors:
             "params": {"name": "no_such_tool", "arguments": {}},
         })
         assert response["error"]["code"] == -32601
+
+class TestMalformedRequestsDoNotKillTheServer:
+    """
+    VSL rollout inventory R9. Six inputs that are valid JSON but not a
+    JSON-RPC request raised AttributeError in _handle_request and ended the
+    process. Each is now answered with -32600 (or -32602 for bad tool params)
+    and the loop keeps reading.
+    """
+
+    @pytest.mark.parametrize("payload", [[], ["tools/list"], "tools/list", 7, None, True])
+    def test_a_non_object_request_is_invalid_request(self, payload):
+        response = _handle_request(payload)
+        assert response["error"]["code"] == -32600
+        assert response["id"] is None
+
+    @pytest.mark.parametrize("params", [[], "x", 3, True])
+    def test_non_object_params_are_invalid_request(self, params):
+        response = _handle_request({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": params})
+        assert response["error"]["code"] == -32600
+        assert response["id"] == 1
+
+    def test_null_params_are_treated_as_empty(self):
+        response = _handle_request({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": None})
+        assert "result" in response
+
+    def test_a_non_string_method_is_invalid_request(self):
+        response = _handle_request({"jsonrpc": "2.0", "id": 1, "method": ["tools/list"]})
+        assert response["error"]["code"] == -32600
+
+    @pytest.mark.parametrize("arguments", [[], "x", 3])
+    def test_non_object_tool_arguments_are_invalid_params(self, arguments):
+        response = _handle_request({
+            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": list(TOOL_HANDLERS)[0], "arguments": arguments},
+        })
+        assert response["error"]["code"] == -32602
+
+    def test_the_stdio_loop_survives_every_one_of_them(self, monkeypatch, capsys):
+        import io
+        import sys
+
+        from sdcgovernance.mcp_server import run_stdio
+
+        lines = ["[]", "\"tools/list\"", "7", "null",
+                 json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": []}),
+                 json.dumps({"jsonrpc": "2.0", "id": 2, "method": "ping"})]
+        monkeypatch.setattr(sys, "stdin", io.StringIO("\n".join(lines) + "\n"))
+        run_stdio()
+        out = [json.loads(l) for l in capsys.readouterr().out.strip().splitlines()]
+        assert len(out) == 6
+        assert [o.get("error", {}).get("code") for o in out[:5]] == [-32600] * 5
+        assert out[5] == {"jsonrpc": "2.0", "id": 2, "result": {}}
+
+
+class TestPreviousHashIsAHash:
+    """
+    VSL rollout inventory R9. evaluate_decision hashed whatever JSON type
+    arrived as previous_hash into the Receipt. It is a SHA-256 hex string or
+    null, and anything else is refused before a Receipt is built.
+    """
+
+    TABLE = json.dumps({"name": "t", "hit_policy": "FIRST",
+                        "rules": [{"conditions": [], "outcome": "PERMIT", "description": "always"}]})
+
+    @pytest.mark.parametrize("bad", [["a" * 64], {"h": "a" * 64}, 42, "not-hex", "A" * 64, "a" * 63])
+    def test_non_hash_values_are_refused(self, bad):
+        response = _handle_request({
+            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": "evaluate_decision",
+                       "arguments": {"table_json": self.TABLE, "previous_hash": bad}},
+        })
+        assert response["result"]["isError"] is True
+        assert "previous_hash" in response["result"]["content"][0]["text"]
+
+    @pytest.mark.parametrize("good", [None, "0" * 64, "abc123" + "f" * 58])
+    def test_null_or_a_hex_digest_is_accepted(self, good):
+        response = _handle_request({
+            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": "evaluate_decision",
+                       "arguments": {"table_json": self.TABLE, "previous_hash": good}},
+        })
+        assert not response["result"].get("isError"), response
+        body = json.loads(response["result"]["content"][0]["text"])
+        assert body["receipt"]["previous_hash"] == good
+
+    @pytest.mark.parametrize("name", ["instance_id", "instance_version", "context_hash", "table_json"])
+    def test_string_arguments_must_be_strings(self, name):
+        args = {"table_json": self.TABLE}
+        args[name] = ["x"]
+        response = _handle_request({
+            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": "evaluate_decision", "arguments": args},
+        })
+        assert response["result"]["isError"] is True
+        assert name in response["result"]["content"][0]["text"]

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.2] - 2026-09-16
+
+### Fixed
+
+- **The MCP server no longer exits on malformed input (VSL rollout R9).** A
+  JSON value that was not an object, or `params` that was not one, raised
+  `AttributeError` and ended the process; six such inputs were reproduced.
+  Every shape the protocol does not allow is answered with JSON-RPC `-32600`
+  (`-32602` for tool `arguments` that are not an object) and the loop keeps
+  reading.
+- **`evaluate_decision` validates `previous_hash`.** Any JSON type was
+  accepted and hashed into the Receipt. It is now a 64-character lowercase
+  hex SHA-256 or null; `instance_id`, `instance_version`, `context_hash`,
+  `instance_path`, `table_json` and `extra_context` must be strings.
+
+### Added
+
+- `SECURITY.md`: reporting, supported versions, and the MCP server's threat
+  model (stdio, no authentication, caller-controlled arguments and paths).
+
+
 ## [4.2.1] - 2026-09-16
 
 ### Fixed
