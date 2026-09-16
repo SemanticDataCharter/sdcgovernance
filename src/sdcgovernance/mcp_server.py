@@ -60,7 +60,7 @@ SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2025-11-25")
 #: Advertised when the client requests a revision we do not implement.
 MCP_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[-1]
 SERVER_NAME = "sdcgovernance"
-SERVER_VERSION = "4.2.1"
+SERVER_VERSION = "4.2.2"
 
 # Engine cache
 _engines: dict[str, GovernanceEngine] = {}
@@ -380,12 +380,44 @@ def _handle_record_provenance(args: dict[str, Any]) -> Any:
     return rec.to_dict()
 
 
+_SHA256_HEX = __import__("re").compile(r"^[0-9a-f]{64}$")
+
+
+def _string_arg(args: dict[str, Any], name: str, *, required: bool = False) -> str:
+    """A tool argument that must be a string; a sentence, not a traceback, if not."""
+    value = args.get(name)
+    if value is None:
+        if required:
+            raise ValueError(f"`{name}` is required and must be a string.")
+        return ""
+    if not isinstance(value, str):
+        raise ValueError(f"`{name}` must be a string, not {type(value).__name__}.")
+    return value
+
+
 def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
     from sdcgovernance.receipts import Receipt, StatusCode
 
-    table_data = json.loads(args["table_json"])
+    # ★ `previous_hash` is hashed into the Receipt. Until 4.2.2 any JSON type
+    # was accepted and canonicalized in, so a chain could carry a list or an
+    # object where a SHA-256 belongs and `verify_hash` would still pass (R9).
+    # It is a 64-character lowercase hex string or null, and nothing else.
+    previous_hash = args.get("previous_hash")
+    if previous_hash is not None and (
+        not isinstance(previous_hash, str) or not _SHA256_HEX.match(previous_hash)
+    ):
+        raise ValueError(
+            "`previous_hash` must be the SHA-256 of the prior Receipt as 64 "
+            "lowercase hex characters, or null to start a chain."
+        )
+    for name in ("instance_id", "instance_version", "context_hash", "instance_path"):
+        _string_arg(args, name)
+
+    table_data = json.loads(_string_arg(args, "table_json", required=True))
     table = _parse_decision_table(table_data)
-    extra = json.loads(args.get("extra_context", "{}"))
+    extra = json.loads(_string_arg(args, "extra_context") or "{}")
+    if not isinstance(extra, dict):
+        raise ValueError("`extra_context` must be a JSON object.")
     instance_path = args.get("instance_path")
     if instance_path:
         # Path supplied: extract context from the SDC instance and merge extra.
@@ -419,7 +451,7 @@ def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
         status_code=status_code,
         instance_id=args.get("instance_id", "") or "",
         instance_version=args.get("instance_version", "") or "",
-        previous_hash=args.get("previous_hash"),
+        previous_hash=previous_hash,
         dimensions_checked=dimensions_checked,
         errors=list(result.errors),
         context_hash=args.get("context_hash", "") or "",
@@ -509,15 +541,36 @@ def _jsonrpc_error(id: Any, code: int, message: str, data: Any = None) -> dict:
     return {"jsonrpc": JSONRPC_VERSION, "id": id, "error": error}
 
 
-def _handle_request(request: dict) -> dict | None:
+def _handle_request(request: Any) -> dict | None:
     """
     Handle a single JSON-RPC 2.0 request.
 
     Returns a response dict, or None for notifications (no id).
+
+    ★ The request is attacker-reachable input: stdio, no authentication, and
+    the caller controls every byte. Until 4.2.2 a JSON value that was not an
+    object (a list, a string, a number, null) or an object whose ``params``
+    was not one raised an ``AttributeError`` and killed the server (six
+    inputs reproduced in the VSL rollout inventory, R9). Every shape the
+    protocol does not allow is now answered with JSON-RPC ``-32600`` and the
+    server keeps reading.
     """
-    method = request.get("method", "")
-    params = request.get("params", {})
+    if not isinstance(request, dict):
+        return _jsonrpc_error(None, -32600, "Invalid Request: a JSON-RPC request is an object")
+
     req_id = request.get("id")
+    if not isinstance(req_id, (str, int, type(None))):
+        return _jsonrpc_error(None, -32600, "Invalid Request: id must be a string, a number or null")
+
+    method = request.get("method", "")
+    if not isinstance(method, str):
+        return _jsonrpc_error(req_id, -32600, "Invalid Request: method must be a string")
+
+    params = request.get("params", {})
+    if params is None:
+        params = {}
+    if not isinstance(params, dict):
+        return _jsonrpc_error(req_id, -32600, "Invalid Request: params must be an object")
 
     if method == "initialize":
         # Negotiate rather than assert: honour the client's revision when we
@@ -556,6 +609,12 @@ def _handle_request(request: dict) -> dict | None:
     elif method == "tools/call":
         tool_name = params.get("name", "")
         tool_args = params.get("arguments", {})
+        if tool_args is None:
+            tool_args = {}
+        if not isinstance(tool_name, str) or not isinstance(tool_args, dict):
+            return _jsonrpc_error(
+                req_id, -32602, "Invalid params: name must be a string and arguments an object"
+            )
 
         handler = TOOL_HANDLERS.get(tool_name)
         if handler is None:
