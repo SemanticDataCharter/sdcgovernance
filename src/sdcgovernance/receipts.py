@@ -199,6 +199,16 @@ class Receipt:
             content["source_instance_id"] = self.source_instance_id
         if self.source_version_id:
             content["source_version_id"] = self.source_version_id
+        # ★ Obligations are inside the hash since 4.2.3 (VSL rollout R10). An
+        # obligation binds the decision: XACML 3.0 §7.2.1 says a PEP that
+        # cannot fulfil one MUST NOT permit. Until 4.2.3 they were emitted but
+        # excluded, so a receipt's obligations could be altered or removed
+        # without `verify_hash` noticing. Included only when present, so a
+        # receipt without obligations hashes exactly as before and every
+        # published hash still verifies; a receipt with them cannot have them
+        # changed.
+        if self.obligations:
+            content["obligations"] = [asdict(o) for o in self.obligations]
         if self.canonicalization == LEGACY_CANONICALIZATION:
             # Bug-compatible with pre-conformance receipts. Do not "fix" this:
             # its whole job is to reproduce bytes we already published.

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.3] - 2026-09-16
+
+### Changed
+
+- **★ Obligations are inside the receipt hash (VSL rollout R10).** An
+  obligation binds the decision (XACML 3.0 §7.2.1: a PEP that cannot fulfil
+  one MUST NOT permit), yet receipts emitted them outside the hash, so they
+  could be altered or removed without `verify_hash` noticing. They are now
+  part of the hashed content **when present**. A receipt without obligations
+  hashes exactly as before, so every receipt and evidence pack published to
+  date still verifies; the engine emits none today, so no published hash
+  changes. A receipt that carries obligations cannot have them changed.
+
+
 ## [4.2.2] - 2026-09-16
 
 ### Fixed
