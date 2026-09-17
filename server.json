@@ -6,13 +6,13 @@
     "url": "https://github.com/SemanticDataCharter/sdcgovernance",
     "source": "github"
   },
-  "version": "4.2.2",
+  "version": "4.2.3",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "sdcgovernance",
-      "version": "4.2.2",
+      "version": "4.2.3",
       "runtimeHint": "uvx",
       "transport": { "type": "stdio" }
     }

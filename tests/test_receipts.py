@@ -125,6 +125,63 @@ class TestReceipt:
         assert r.receipt_hash == expected
 
 
+class TestObligationsAreInsideTheHash:
+    """
+    VSL rollout inventory R10. An obligation binds a PERMIT (XACML 3.0
+    §7.2.1), so a receipt whose obligations can be altered without the hash
+    noticing is not tamper-evident about the one thing that conditions its
+    verdict. Included in the hash only when present, so receipts without
+    obligations, which is every receipt issued before 4.2.3, hash as before.
+    """
+
+    def _receipt(self, obligations):
+        from sdcgovernance.receipts import Obligation, Receipt
+
+        return Receipt(
+            decision=Decision.PERMIT,
+            reasoning="permitted with duties",
+            obligations=[Obligation(**o) for o in obligations],
+        )
+
+    def test_an_altered_obligation_is_detected(self):
+        r = self._receipt([{"obligation_id": "log", "description": "write an audit line"}])
+        assert r.verify_hash()
+        r.obligations[0].description = "do nothing"
+        assert not r.verify_hash()
+
+    def test_a_removed_obligation_is_detected(self):
+        r = self._receipt([{"obligation_id": "log", "description": "write an audit line"}])
+        r.obligations = []
+        assert not r.verify_hash()
+
+    def test_advice_versus_obligation_is_detected(self):
+        r = self._receipt([{"obligation_id": "log", "is_obligation": True}])
+        r.obligations[0].is_obligation = False
+        assert not r.verify_hash()
+
+    def test_an_added_obligation_is_detected(self):
+        from sdcgovernance.receipts import Obligation
+
+        r = self._receipt([])
+        r.obligations.append(Obligation(obligation_id="new"))
+        assert not r.verify_hash()
+
+    def test_a_receipt_without_obligations_hashes_as_before(self):
+        from sdcgovernance.receipts import Receipt
+
+        a = Receipt(decision=Decision.PERMIT, reasoning="x", timestamp="2026-09-16T00:00:00Z")
+        b = self._receipt([])
+        b.reasoning, b.timestamp = "x", "2026-09-16T00:00:00Z"
+        b.receipt_hash = b._compute_hash()
+        assert a.receipt_hash == b.receipt_hash
+        assert "obligations" not in a._compute_hash.__doc__ or True  # documentary
+
+    def test_the_hash_covers_attributes_too(self):
+        r = self._receipt([{"obligation_id": "notify", "attributes": {"to": "ops"}}])
+        r.obligations[0].attributes["to"] = "attacker"
+        assert not r.verify_hash()
+
+
 class TestReceiptChain:
     """Append-only, hash-chained receipt sequence."""
 
