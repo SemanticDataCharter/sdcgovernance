@@ -1,0 +1,21 @@
+# Dependabot keeps the runtime pins and the workflow actions current on dev,
+# where everything lands first; a bump reaches main through the normal
+# dev-to-main PR and a tagged release, never directly. Security updates are
+# enabled at the repository level and use this same configuration.
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "dev"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels: ["dependencies"]
