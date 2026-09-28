@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.4] - 2026-09-28
+
+### Fixed
+
+- **Only the workflow is the workflow.** `extract_workflow_from_model` made
+  every `XdOrdinalType` component in a model a workflow path: it computed
+  whether a component carried a workflow or SCXML binding and never used the
+  answer. On a model with no bound workflow, answer scales (a severity scale, a
+  frequency scale) were taken for the state machine, and a valid transition was
+  DENIED. Found on the first VSL settlement with an outside party, 2026-09-28.
+  The workflow is now, in order of authority: the ordinal components reachable
+  from the component the DM's `workflow` element is typed to; otherwise, when
+  that element is the generic `ClusterType`, the ordinals carrying a workflow or
+  SCXML binding. A model with neither returns `None`, as the docstring always
+  said, and an issuer falls back to the instance's own tree as documented.
+  Checked over 18 published models: only the one without a workflow changes;
+  every model that binds one extracts exactly as before.
+
 ## [4.2.3] - 2026-09-16
 
 ### Changed
