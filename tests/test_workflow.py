@@ -360,3 +360,107 @@ class TestReferenceModelValidInstance:
         """The bare-XdOrdinal shape the old fixtures use keeps working."""
         _, tree = extract_workflow_from_instance(str(FIXTURES / "instance-linear-workflow.xml"))
         assert tree.paths[0].state_symbols == ["draft", "review", "approved", "published"]
+
+
+# ---------------------------------------------------------------------------
+# 4.2.4: which XdOrdinal components are the workflow
+# ---------------------------------------------------------------------------
+
+from sdcgovernance.workflow import extract_workflow_from_model
+
+_XSD_HEAD = """<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:sdc4="https://semanticdatacharter.com/ns/sdc4/"
+            xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+            xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+            targetNamespace="https://semanticdatacharter.com/ns/sdc4/">
+"""
+
+
+def _ordinal(name, label, states, binding=None, annotated=True):
+    enums = "".join(
+        f'<xsd:enumeration value="{i}"><xsd:annotation><xsd:documentation>{s}'
+        f"</xsd:documentation></xsd:annotation></xsd:enumeration>"
+        for i, s in enumerate(states)
+    )
+    see_also = f'<rdfs:seeAlso rdf:resource="{binding}"/>' if binding else ""
+    annotation = (
+        f'<xsd:annotation><xsd:appinfo><rdf:Description rdf:about="{name}">'
+        f"<rdfs:label>{label}</rdfs:label>{see_also}</rdf:Description></xsd:appinfo></xsd:annotation>"
+        if annotated
+        else ""
+    )
+    return f"""
+  <xsd:complexType name="{name}">{annotation}
+    <xsd:complexContent><xsd:restriction base="sdc4:XdOrdinalType"><xsd:sequence>
+      <xsd:element name="ordinal"><xsd:simpleType><xsd:restriction base="xsd:decimal">{enums}
+      </xsd:restriction></xsd:simpleType></xsd:element>
+    </xsd:sequence></xsd:restriction></xsd:complexContent>
+  </xsd:complexType>"""
+
+
+def _cluster(name, members):
+    elems = "".join(f'<xsd:element name="{m}" type="sdc4:{m}"/>' for m in members)
+    return f"""
+  <xsd:complexType name="{name}"><xsd:complexContent><xsd:restriction base="sdc4:ClusterType">
+    <xsd:sequence>{elems}</xsd:sequence></xsd:restriction></xsd:complexContent></xsd:complexType>"""
+
+
+def _model(workflow_type, *components):
+    dm = f"""
+  <xsd:complexType name="dm-test"><xsd:complexContent><xsd:restriction base="sdc4:DMType">
+    <xsd:sequence><xsd:element name="workflow" minOccurs="0" type="{workflow_type}"/></xsd:sequence>
+  </xsd:restriction></xsd:complexContent></xsd:complexType>"""
+    return _XSD_HEAD + dm + "".join(components) + "\n</xsd:schema>\n"
+
+
+SCXML = "http://www.w3.org/2005/07/scxml"
+
+
+class TestWorkflowSelection:
+    """Before 4.2.4 every XdOrdinal in a model became a workflow path."""
+
+    def test_a_model_without_a_workflow_returns_none(self):
+        # The 4.3.1 Healthcare model: generic workflow element, two answer
+        # scales and no bound workflow. It produced a DENY on 2026-09-28
+        # because the scales were taken for the state machine.
+        tree = extract_workflow_from_model(FIXTURES / "dm-ftluo2nybgxmn7mawttoos20.xsd")
+        assert tree is None
+
+    def test_unbound_ordinals_are_not_a_workflow(self, tmp_path):
+        xsd = tmp_path / "m.xsd"
+        xsd.write_text(_model(
+            "sdc4:ClusterType",
+            _ordinal("mc-severity", "Severity", ["Mild", "Moderate", "Severe"]),
+        ))
+        assert extract_workflow_from_model(xsd) is None
+
+    def test_a_bound_ordinal_is_a_path_when_the_element_is_generic(self, tmp_path):
+        xsd = tmp_path / "m.xsd"
+        xsd.write_text(_model(
+            "sdc4:ClusterType",
+            _ordinal("mc-severity", "Severity", ["Mild", "Severe"]),
+            _ordinal("mc-main", "Main path", ["draft", "review", "published"], binding=SCXML),
+        ))
+        tree = extract_workflow_from_model(xsd)
+        assert [p.label for p in tree.paths] == ["mc-main"]
+        assert tree.is_valid_transition("draft", "review")
+
+    def test_the_typed_workflow_element_decides(self, tmp_path):
+        # Reachable from the workflow cluster: included, even without a binding
+        # or an annotation. Bound but unreachable: excluded, because the model
+        # named its workflow and it is not that one.
+        xsd = tmp_path / "m.xsd"
+        xsd.write_text(_model(
+            "sdc4:mc-wf",
+            _cluster("mc-wf", ["mc-path"]),
+            _cluster("mc-path", ["mc-main", "mc-bare"]),
+            _ordinal("mc-main", "Main path", ["planned", "arrived"]),
+            _ordinal("mc-bare", "", ["arrived", "cancelled"], annotated=False),
+            _ordinal("mc-other", "Elsewhere", ["a", "b"], binding=SCXML),
+            _ordinal("mc-severity", "Severity", ["Mild", "Severe"]),
+        ))
+        tree = extract_workflow_from_model(xsd)
+        assert sorted(p.label for p in tree.paths) == ["mc-bare", "mc-main"]
+        assert tree.is_valid_transition("planned", "arrived")
+        assert tree.is_valid_transition("arrived", "cancelled")

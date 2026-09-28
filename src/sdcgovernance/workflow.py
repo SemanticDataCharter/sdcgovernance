@@ -154,19 +154,56 @@ def extract_workflow_from_model(schema_path: str) -> WorkflowTree | None:
     if workflow_elem is None:
         return None
 
-    # The workflow element type is ClusterType. We need to find the
-    # model components that define the workflow states.
-    # In a real model, the workflow would reference specific components
-    # via the cluster structure. For now, we extract any XdOrdinal
-    # components in the model that are workflow-related.
+    # ★ Which XdOrdinal components are the workflow, in order of authority:
+    #   1. those reachable from the component the `workflow` element is typed
+    #      to (a model that binds a workflow names it there);
+    #   2. if that element is the generic ClusterType, those carrying a
+    #      workflow or SCXML vocabulary binding.
+    # Before 4.2.4 neither was applied: every XdOrdinal in the model became a
+    # path, so a severity or frequency scale could be taken for the workflow
+    # and a valid transition was DENIED. A model with no workflow now returns
+    # None, as this docstring always said.
     workflow_tree = WorkflowTree()
-
-    # Look for workflow-specific component definitions in the schema
-    # These are complexTypes that restrict ClusterType and are used
-    # within the workflow structure
-    _extract_workflow_components(root, workflow_tree)
+    reachable = _ordinals_reachable_from(root, workflow_elem.get("type", ""))
+    _extract_workflow_components(root, workflow_tree, only=reachable or None)
 
     return workflow_tree if workflow_tree.paths else None
+
+
+def _ordinals_reachable_from(root: etree._Element, type_ref: str) -> set[str]:
+    """
+    The ``mc-`` XdOrdinal component names reachable from a component type.
+
+    Walks the element types named inside each complexType, starting at
+    ``type_ref``. Returns an empty set when the type is not a model component
+    (for example the generic ``sdc4:ClusterType``) or reaches no ordinal.
+    """
+    local = type_ref.split(":")[-1]
+    if not local.startswith("mc-"):
+        return set()
+
+    types: dict[str, etree._Element] = {
+        ct.get("name", ""): ct
+        for ct in root.iter(f"{{{XSD_NS}}}complexType")
+        if ct.get("name", "").startswith("mc-")
+    }
+    found: set[str] = set()
+    seen: set[str] = set()
+    pending = [local]
+    while pending:
+        name = pending.pop()
+        if name in seen or name not in types:
+            continue
+        seen.add(name)
+        ct = types[name]
+        restriction = ct.find(f"{{{XSD_NS}}}complexContent/{{{XSD_NS}}}restriction")
+        if restriction is not None and restriction.get("base") == "sdc4:XdOrdinalType":
+            found.add(name)
+        for elem in ct.iter(f"{{{XSD_NS}}}element"):
+            child = elem.get("type", "").split(":")[-1]
+            if child.startswith("mc-") and child not in seen:
+                pending.append(child)
+    return found
 
 
 def extract_workflow_from_instance(instance_path: str) -> tuple[str, WorkflowTree | None]:
@@ -217,7 +254,9 @@ def _find_dm_restriction(root: etree._Element) -> etree._Element | None:
 
 
 def _extract_workflow_components(
-    root: etree._Element, workflow_tree: WorkflowTree
+    root: etree._Element,
+    workflow_tree: WorkflowTree,
+    only: set[str] | None = None,
 ) -> None:
     """
     Extract workflow-related components from the model schema.
@@ -245,7 +284,9 @@ def _extract_workflow_components(
 
         # Check annotation for workflow-related vocabulary binding
         appinfo = ct.find(f"{{{XSD_NS}}}annotation/{{{XSD_NS}}}appinfo")
-        if appinfo is None:
+        # A component the workflow element reaches is a state set even without
+        # an annotation; everything else needs the binding to qualify.
+        if appinfo is None and (only is None or ct_name not in only):
             continue
 
         # Extract component info
@@ -253,7 +294,7 @@ def _extract_workflow_components(
         label = ""
         is_workflow = False
 
-        desc = appinfo.find(f"{{{RDF_NS}}}Description")
+        desc = appinfo.find(f"{{{RDF_NS}}}Description") if appinfo is not None else None
         if desc is not None:
             label_elem = desc.find(f"{{{RDFS_NS}}}label")
             if label_elem is not None and label_elem.text:
@@ -270,6 +311,15 @@ def _extract_workflow_components(
                 resource = defined_by.get(f"{{{RDF_NS}}}resource", "")
                 if "scxml" in resource.lower() or "workflow" in resource.lower():
                     is_workflow = True
+
+        # ★ A component is a workflow path if the workflow element reaches it
+        # (`only`), or, when nothing is reachable, if it carries a workflow or
+        # SCXML binding. `is_workflow` was computed and ignored before 4.2.4.
+        if only is not None:
+            if component_id not in only:
+                continue
+        elif not is_workflow:
+            continue
 
         # Extract ordinal enumerations
         states = _extract_ordinal_enumerations(restriction, component_id, label)
