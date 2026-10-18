@@ -7,7 +7,7 @@ sdcgovernance exposes all governance tools via a JSON-RPC 2.0 stdio server imple
 ## Starting the Server
 
 ```bash
-sdcgovernance serve --mcp
+sdcgovernance            # or: sdcgovernance mcp, or sdcgovernance serve --mcp
 ```
 
 The server reads JSON-RPC 2.0 messages from stdin (one per line) and writes responses to stdout.
@@ -21,7 +21,7 @@ Agent                          sdcgovernance
   |<----- capabilities + info ------|
   |                                 |
   |------ tools/list -------------->|
-  |<----- 6 tool definitions ------|
+  |<----- 7 tool definitions ------|
   |                                 |
   |------ tools/call -------------->|
   |       (get_governance_status)   |

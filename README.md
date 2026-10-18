@@ -82,8 +82,12 @@ result = validate_governance("model.xsd", "instance.xml")
 **MCP Server** - for any agent framework:
 
 ```bash
-sdcgovernance serve --mcp
+sdcgovernance            # what an MCP registry client runs (uvx sdcgovernance)
+sdcgovernance mcp        # the same, spelled like the other Semantic Data Charter servers
+sdcgovernance serve --mcp   # still works for existing client configurations
 ```
+
+A client configuration needs only `"command": "uvx", "args": ["sdcgovernance"]`.
 
 The MCP server exposes governance as tools that agents call. The agent runs the loop. sdcgovernance advises.
 
