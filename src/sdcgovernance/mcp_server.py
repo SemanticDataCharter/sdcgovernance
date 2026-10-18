@@ -13,9 +13,17 @@ MCP Tools exposed:
 - get_governance_status: what governance dimensions does this model define?
 - get_allowed_transitions: what transitions are available from current state?
 - evaluate_transition: can this specific transition proceed? (PERMIT/DENY/INDETERMINATE)
-- evaluate_decision: evaluate a DMN decision table against instance context
+- evaluate_decision: evaluate a DMN decision table (registered by id, or inline) against instance context
+- register_decision_table: put a decision table in the registry under an id and version (issue #3)
+- list_decision_tables: what tables and versions the registry holds, with their content hashes
 - record_provenance: record what happened for the audit trail
 - validate_governance: full governance validation of an instance
+- verify_evidence_pack: recompute an MTCP Evidence Pack hash
+
+Registered tables live in memory for the life of the process, and in the
+directory named by ``--tables-dir`` or ``SDCGOVERNANCE_TABLES_DIR`` when one
+is given: every file there is loaded at startup and every registration is
+written back, one JSON file per table version.
 
 Protocol: JSON-RPC 2.0 over stdio (one JSON object per line).
 """
@@ -23,7 +31,9 @@ Protocol: JSON-RPC 2.0 over stdio (one JSON object per line).
 from __future__ import annotations
 
 import json
+import os
 import sys
+from pathlib import Path
 from typing import Any
 
 from sdcgovernance.engine import GovernanceEngine
@@ -32,13 +42,11 @@ from sdcgovernance.workflow import extract_workflow_from_instance
 from sdcgovernance.provenance import record_provenance as _record_provenance
 from sdcgovernance.decision import (
     DecisionTable,
-    Rule,
-    Condition,
-    ComparisonOp,
-    HitPolicy,
+    decision_table_hash,
     evaluate_decision_table,
     build_context_from_instance,
 )
+from sdcgovernance.tables import RegisteredTable, TableRegistry, parse_decision_table
 
 # Protocol constants
 JSONRPC_VERSION = "2.0"
@@ -60,10 +68,35 @@ SUPPORTED_PROTOCOL_VERSIONS = ("2025-06-18", "2025-11-25")
 #: Advertised when the client requests a revision we do not implement.
 MCP_PROTOCOL_VERSION = SUPPORTED_PROTOCOL_VERSIONS[-1]
 SERVER_NAME = "sdcgovernance"
-SERVER_VERSION = "4.2.5"
+SERVER_VERSION = "4.3.0"
 
 # Engine cache
 _engines: dict[str, GovernanceEngine] = {}
+
+#: Decision tables registered in this process (issue #3). ``configure_tables``
+#: loads a directory into it and makes registrations persist there.
+_registry = TableRegistry()
+_tables_dir: Path | None = None
+
+
+def configure_tables(directory: str | Path | None) -> TableRegistry:
+    """
+    Load every table file in ``directory`` and persist registrations there.
+
+    Called at startup with ``--tables-dir`` or ``SDCGOVERNANCE_TABLES_DIR``;
+    ``None`` keeps an in-memory registry. Returns the registry.
+    """
+    global _tables_dir
+    _tables_dir = Path(directory) if directory else None
+    if _tables_dir is not None:
+        _tables_dir.mkdir(parents=True, exist_ok=True)
+        _registry.load(_tables_dir)
+    return _registry
+
+
+def get_registry() -> TableRegistry:
+    """The process-wide decision table registry."""
+    return _registry
 
 
 def _get_engine(schema_path: str) -> GovernanceEngine:
@@ -196,8 +229,13 @@ TOOLS = [
         "name": "evaluate_decision",
         "description": (
             "Evaluate a DMN decision table against instance context. "
-            "Returns decision, matched_rules, reasoning, errors, and a "
-            "tamper-evident Receipt with SHA-256 receipt_hash. "
+            "Name the table by table_id (and table_version; the highest "
+            "registered version when omitted) for a governed evaluation, or "
+            "pass it inline as table_json for an ad-hoc one. "
+            "Returns decision, matched_rules, reasoning, errors, the table's "
+            "identity and content hash, and a tamper-evident Receipt whose "
+            "receipt_hash covers table_id, table_version and table_hash "
+            "as well as context_hash. "
             "instance_path is optional: when omitted, the decision is "
             "evaluated against extra_context alone, which is the path "
             "external context-only consumers (e.g. MTCP Evidence Packs) "
@@ -215,10 +253,28 @@ TOOLS = [
                         "extra_context only."
                     ),
                 },
+                "table_id": {
+                    "type": "string",
+                    "description": (
+                        "Id of a registered decision table (see "
+                        "register_decision_table and list_decision_tables). "
+                        "Give table_id or table_json, not both."
+                    ),
+                },
+                "table_version": {
+                    "type": "string",
+                    "description": (
+                        "Version of the registered table. Omit for the "
+                        "highest registered version; the Receipt records "
+                        "the version that was used."
+                    ),
+                },
                 "table_json": {
                     "type": "string",
                     "description": (
-                        "JSON string defining the decision table. "
+                        "JSON string defining the decision table inline, for "
+                        "an ad-hoc evaluation (the Receipt then carries the "
+                        "table's content hash but no id or version). "
                         'Format: {"name": "...", "hit_policy": "FIRST|UNIQUE|COLLECT", '
                         '"rules": [{"conditions": [{"field": "...", "op": "==|!=|<|<=|>|>=|in|not_in", "value": ...}], '
                         '"outcome": "PERMIT|DENY|INDETERMINATE", "description": "..."}]}'
@@ -268,7 +324,66 @@ TOOLS = [
                     "default": "",
                 },
             },
-            "required": ["table_json"],
+        },
+    },
+    {
+        "name": "register_decision_table",
+        "description": (
+            "Register a decision table under a stable table_id and an "
+            "immutable version, so evaluate_decision can name it and every "
+            "Receipt it produces records which policy version applied. "
+            "Returns table_id, version, table_hash (SHA-256 of the table's "
+            "RFC 8785 canonical JSON), domain and policy. Registering the "
+            "same content again under the same id and version is a no-op; "
+            "different content under an existing id and version is refused: "
+            "register it as a new version. Persists to the server's tables "
+            "directory when one is configured."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "table_id": {
+                    "type": "string",
+                    "description": "Stable identifier, e.g. 'cordova.access-control'. Letters, digits, '.', '_', '-'.",
+                },
+                "version": {
+                    "type": "string",
+                    "description": "Immutable version label, e.g. '1.0' or '2026-10-18'.",
+                },
+                "table_json": {
+                    "type": "string",
+                    "description": "JSON string defining the decision table (same format as evaluate_decision).",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Optional domain the table governs, e.g. 'retention' or 'escalation'.",
+                    "default": "",
+                },
+                "policy": {
+                    "type": "string",
+                    "description": "Optional policy reference the table implements, e.g. a policy document URI.",
+                    "default": "",
+                },
+            },
+            "required": ["table_id", "version", "table_json"],
+        },
+    },
+    {
+        "name": "list_decision_tables",
+        "description": (
+            "List the registered decision tables: table_id, version, "
+            "table_hash, domain, policy and registered_at for each version, "
+            "lowest version first. Filter by table_id or domain. With "
+            "table_id the full table JSON of each version is included, which "
+            "is how a receipt's table_id and table_version are resolved back "
+            "to the rules that applied."
+        ),
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "table_id": {"type": "string", "description": "Only this table's versions, with their JSON."},
+                "domain": {"type": "string", "description": "Only tables registered under this domain."},
+            },
         },
     },
     {
@@ -413,8 +528,7 @@ def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
     for name in ("instance_id", "instance_version", "context_hash", "instance_path"):
         _string_arg(args, name)
 
-    table_data = json.loads(_string_arg(args, "table_json", required=True))
-    table = _parse_decision_table(table_data)
+    table, registration = _resolve_table(args)
     extra = json.loads(_string_arg(args, "extra_context") or "{}")
     if not isinstance(extra, dict):
         raise ValueError("`extra_context` must be a JSON object.")
@@ -455,6 +569,9 @@ def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
         dimensions_checked=dimensions_checked,
         errors=list(result.errors),
         context_hash=args.get("context_hash", "") or "",
+        table_id=registration.table_id if registration else "",
+        table_version=registration.version if registration else "",
+        table_hash=registration.table_hash if registration else decision_table_hash(table),
     )
 
     return {
@@ -462,7 +579,58 @@ def _handle_evaluate_decision(args: dict[str, Any]) -> Any:
         "matched_rules": result.matched_rules,
         "reasoning": result.reasoning,
         "errors": result.errors,
+        "table": {
+            "table_id": receipt.table_id,
+            "table_version": receipt.table_version,
+            "table_hash": receipt.table_hash,
+        },
         "receipt": receipt.to_dict(),
+    }
+
+
+def _resolve_table(args: dict[str, Any]) -> tuple[DecisionTable, RegisteredTable | None]:
+    """
+    The table an evaluate_decision call names: registered (by id and
+    optional version) or inline. Exactly one of the two.
+    """
+    table_id = _string_arg(args, "table_id")
+    table_version = _string_arg(args, "table_version")
+    table_json = _string_arg(args, "table_json")
+    if table_id and table_json:
+        raise ValueError("Give `table_id` or `table_json`, not both.")
+    if table_id:
+        registration = _registry.get(table_id, table_version or None)
+        return registration.table, registration
+    if table_version:
+        raise ValueError("`table_version` needs a `table_id`.")
+    if not table_json:
+        raise ValueError("Name a registered table with `table_id` or pass one inline as `table_json`.")
+    table_data = json.loads(table_json)
+    return parse_decision_table(table_data), None
+
+
+def _handle_register_decision_table(args: dict[str, Any]) -> Any:
+    table_id = _string_arg(args, "table_id", required=True)
+    version = _string_arg(args, "version", required=True)
+    table_data = json.loads(_string_arg(args, "table_json", required=True))
+    entry = _registry.register(
+        table_id, version, table_data,
+        domain=_string_arg(args, "domain"), policy=_string_arg(args, "policy"),
+    )
+    if _tables_dir is not None:
+        _registry.save_one(_tables_dir, entry)
+    result = entry.to_dict(include_table=False)
+    result["persisted"] = _tables_dir is not None
+    return result
+
+
+def _handle_list_decision_tables(args: dict[str, Any]) -> Any:
+    table_id = _string_arg(args, "table_id") or None
+    domain = _string_arg(args, "domain") or None
+    entries = _registry.list(table_id=table_id, domain=domain)
+    return {
+        "count": len(entries),
+        "tables": [e.to_dict(include_table=table_id is not None) for e in entries],
     }
 
 
@@ -480,50 +648,17 @@ TOOL_HANDLERS = {
     "validate_governance": _handle_validate_governance,
     "record_provenance": _handle_record_provenance,
     "evaluate_decision": _handle_evaluate_decision,
+    "register_decision_table": _handle_register_decision_table,
+    "list_decision_tables": _handle_list_decision_tables,
     "verify_evidence_pack": _handle_verify_evidence_pack,
 }
 
 
 # --- Decision table JSON parsing ---
 
-def _parse_decision_table(data: dict[str, Any]) -> DecisionTable:
-    """Parse a decision table from a JSON-compatible dict."""
-    op_map = {
-        "==": ComparisonOp.EQ, "!=": ComparisonOp.NE,
-        "<": ComparisonOp.LT, "<=": ComparisonOp.LE,
-        ">": ComparisonOp.GT, ">=": ComparisonOp.GE,
-        "in": ComparisonOp.IN, "not_in": ComparisonOp.NOT_IN,
-    }
-    decision_map = {
-        "PERMIT": Decision.PERMIT,
-        "DENY": Decision.DENY,
-        "INDETERMINATE": Decision.INDETERMINATE,
-        "NOT_APPLICABLE": Decision.NOT_APPLICABLE,
-    }
-    policy_map = {
-        "FIRST": HitPolicy.FIRST,
-        "UNIQUE": HitPolicy.UNIQUE,
-        "COLLECT": HitPolicy.COLLECT,
-    }
-
-    rules = []
-    for rule_data in data.get("rules", []):
-        conditions = [
-            Condition(field=c["field"], op=op_map[c["op"]], value=c["value"])
-            for c in rule_data.get("conditions", [])
-        ]
-        rules.append(Rule(
-            conditions=conditions,
-            outcome=decision_map[rule_data["outcome"]],
-            description=rule_data.get("description", ""),
-        ))
-
-    return DecisionTable(
-        name=data.get("name", ""),
-        hit_policy=policy_map.get(data.get("hit_policy", "FIRST"), HitPolicy.FIRST),
-        rules=rules,
-        description=data.get("description", ""),
-    )
+#: Kept under its old name for callers and tests; the parser lives in
+#: ``sdcgovernance.tables`` since 4.3.0.
+_parse_decision_table = parse_decision_table
 
 
 # --- JSON-RPC 2.0 stdio server ---
@@ -697,6 +832,15 @@ def main(argv: list[str] | None = None) -> None:
     )
     subparsers = parser.add_subparsers(dest="command")
 
+    parser.add_argument(
+        "--tables-dir",
+        default=os.environ.get("SDCGOVERNANCE_TABLES_DIR") or None,
+        help=(
+            "Directory of registered decision tables (one JSON file per table "
+            "version), loaded at startup and written on register_decision_table. "
+            "Defaults to $SDCGOVERNANCE_TABLES_DIR; without it the registry is in memory."
+        ),
+    )
     subparsers.add_parser("mcp", help="Run the MCP stdio server")
     serve_parser = subparsers.add_parser("serve", help="Start the governance server")
     serve_parser.add_argument(
@@ -704,6 +848,7 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     args = parser.parse_args(argv)
+    configure_tables(args.tables_dir)
 
     if args.command is None or args.command == "mcp" or (args.command == "serve" and args.mcp):
         if args.command is None and sys.stdin.isatty():

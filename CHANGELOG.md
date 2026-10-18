@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-10-18
+
+### Added
+
+- **Decision tables are tracked entities (#3).** `sdcgovernance.tables.TableRegistry`
+  holds tables under a stable `table_id` and an immutable `version`, each with a
+  content hash (`decision_table_hash`: SHA-256 of the table's RFC 8785 canonical
+  JSON, the convention `receipt_hash` and `evidence_pack_hash` already use) and
+  an optional domain and policy label. Same content under the same id and
+  version is a no-op; different content is refused. A registry saves to and
+  loads from a directory, one JSON file per version, and refuses a file whose
+  table no longer matches its recorded hash.
+- **Receipts name the policy.** `Receipt` carries `table_id`, `table_version`
+  and `table_hash`, inside `receipt_hash` when present, so a receipt binds
+  evidence, policy, decision and outcome. Receipts issued before 4.3.0 carry no
+  table fields and verify exactly as they did. `ReceiptChain.append` takes the
+  three fields.
+- **MCP.** `evaluate_decision` names a registered table with `table_id` (and
+  `table_version`; the highest when omitted) or takes `table_json` inline; the
+  result carries `table` and a bound Receipt (inline tables bind by hash alone).
+  New tools `register_decision_table` and `list_decision_tables`. The server
+  loads and persists the registry in `--tables-dir` / `SDCGOVERNANCE_TABLES_DIR`;
+  without it the registry is in memory. Nine tools.
+- `parse_decision_table` refuses unknown hit policies, outcomes and operators
+  instead of defaulting them; the old `_parse_decision_table` name still works.
+- `tests/test_table_registry.py` (29 tests). The Decision Tables and MCP Server
+  guides describe the registry, the receipt binding and the new tools.
+
 ## [4.2.5] - 2026-10-18
 
 ### Fixed

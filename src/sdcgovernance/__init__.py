@@ -29,9 +29,11 @@ Basic usage::
 See https://github.com/SemanticDataCharter/sdcgovernance for documentation.
 """
 
-__version__ = "4.2.5"
+__version__ = "4.3.0"
 
 from sdcgovernance.engine import GovernanceEngine
+from sdcgovernance.decision import decision_table_hash
+from sdcgovernance.tables import RegisteredTable, TableRegistry
 from sdcgovernance.model_inspector import GovernanceModel, inspect_model
 from sdcgovernance.receipts import (
     Decision,
@@ -44,6 +46,9 @@ from sdcgovernance.receipts import (
 
 __all__ = [
     "validate_governance",
+    "TableRegistry",
+    "RegisteredTable",
+    "decision_table_hash",
     "inspect_model",
     "Decision",
     "GovernanceEngine",

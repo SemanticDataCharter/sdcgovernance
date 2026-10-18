@@ -58,7 +58,7 @@ class TestMcpProtocol:
         request = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
         response = _handle_request(request)
         tools = response["result"]["tools"]
-        assert len(tools) == 7
+        assert len(tools) == 9
         names = {t["name"] for t in tools}
         assert names == {
             "get_governance_status",
@@ -67,6 +67,8 @@ class TestMcpProtocol:
             "validate_governance",
             "record_provenance",
             "evaluate_decision",
+            "register_decision_table",
+            "list_decision_tables",
             "verify_evidence_pack",
         }
 
@@ -318,7 +320,11 @@ class TestEvaluateDecision:
         evaluate_decision_tool = next(t for t in TOOLS if t["name"] == "evaluate_decision")
         required = evaluate_decision_tool["inputSchema"].get("required", [])
         assert "instance_path" not in required
-        assert "table_json" in required
+        # Since 4.3.0 a table is named by table_id or passed as table_json (#3);
+        # neither alone is required, the handler insists on exactly one.
+        assert required == []
+        properties = evaluate_decision_tool["inputSchema"]["properties"]
+        assert {"table_id", "table_version", "table_json"} <= set(properties)
 
 
 class TestEvaluateDecisionReceipt:
@@ -487,9 +493,24 @@ class TestEvaluateDecisionReceipt:
             previous_hash=rec["previous_hash"],
             dimensions_checked=rec["dimensions_checked"],
             errors=rec["errors"],
+            table_hash=rec["table_hash"],
         )
         assert reconstructed.verify_hash()
         assert reconstructed.receipt_hash == rec["receipt_hash"]
+        # The policy is inside the hash (#3): the same receipt without it is a
+        # different receipt.
+        without_table = Receipt(
+            decision=Decision(rec["decision"]),
+            reasoning=rec["reasoning"],
+            status_code=StatusCode(rec["status_code"]),
+            instance_id=rec["instance_id"],
+            instance_version=rec["instance_version"],
+            timestamp=rec["timestamp"],
+            previous_hash=rec["previous_hash"],
+            dimensions_checked=rec["dimensions_checked"],
+            errors=rec["errors"],
+        )
+        assert without_table.receipt_hash != rec["receipt_hash"]
 
 
 class TestEvaluateDecisionContextHash:
