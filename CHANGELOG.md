@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.5] - 2026-10-18
+
+### Fixed
+
+- **The MCP registry entry starts the server (#18).** `server.json` declared
+  the package with no `packageArguments`, so a registry client that ran
+  `uvx sdcgovernance` reached `main()` with no arguments, which printed the
+  CLI help and exited; only `sdcgovernance serve --mcp` started a server.
+  `server.json` now passes `mcp`, and the console script starts the stdio
+  server with no arguments, with `mcp`, or with `serve --mcp` (kept for
+  existing client configurations). `tests/test_registry_launch.py` starts
+  the server each way and checks that `server.json` names the released
+  version.
+- `docs/user/mcp-server.md` said `tools/list` returns six tool definitions;
+  it returns seven (`evaluate_decision` and `verify_evidence_pack` were added
+  without the count).
+
 ## [4.2.4] - 2026-09-28
 
 ### Fixed

@@ -6,15 +6,24 @@
     "url": "https://github.com/SemanticDataCharter/sdcgovernance",
     "source": "github"
   },
-  "version": "4.2.4",
+  "version": "4.2.5",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "sdcgovernance",
-      "version": "4.2.4",
+      "version": "4.2.5",
       "runtimeHint": "uvx",
-      "transport": { "type": "stdio" }
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp",
+          "description": "Run the MCP stdio server rather than the CLI help."
+        }
+      ]
     }
   ]
 }
