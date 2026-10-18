@@ -114,7 +114,8 @@ src/sdcgovernance/
 ├── attestation.py       # Validate attestation content in instance
 ├── party_role.py        # Validate party/role constraints in instance
 ├── provenance.py        # Validate provenance/audit records + PROV generation + DPV retention policy
-├── decision.py          # DMN decision table evaluation
+├── decision.py          # DMN decision table evaluation + content hash
+├── tables.py            # Decision table registry: id, version, hash; files on disk
 ├── receipts.py          # Decision receipt chain (hash-chained)
 ├── shacl_runtime.py     # SHACL cross-entity constraint validation
 └── mcp_server.py        # MCP server exposing governance tools to any agent

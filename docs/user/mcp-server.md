@@ -21,7 +21,7 @@ Agent                          sdcgovernance
   |<----- capabilities + info ------|
   |                                 |
   |------ tools/list -------------->|
-  |<----- 7 tool definitions ------|
+  |<----- 9 tool definitions ------|
   |                                 |
   |------ tools/call -------------->|
   |       (get_governance_status)   |
@@ -179,6 +179,8 @@ Record a provenance event as a W3C PROV-O record.
 
 ### evaluate_decision
 
+Since 4.3.0 the table is named by `table_id` (and `table_version`; the highest registered version when omitted) or passed inline as `table_json`, one or the other. The result carries `table` (`table_id`, `table_version`, `table_hash`) and a Receipt whose `receipt_hash` covers those three fields and `context_hash`, so the receipt binds evidence, policy, decision and outcome.
+
 Evaluate a DMN decision table against instance context.
 
 **Input:**
@@ -199,6 +201,31 @@ Evaluate a DMN decision table against instance context.
     "errors": []
 }
 ```
+
+### register_decision_table
+
+Register a decision table under a stable `table_id` and an immutable `version` (issue #3). Returns `table_id`, `version`, `table_hash` (SHA-256 of the table's RFC 8785 canonical JSON), `domain`, `policy`, `registered_at` and `persisted`. The same content under the same id and version is a no-op; different content is refused, so register a changed table as a new version.
+
+```json
+{
+  "name": "register_decision_table",
+  "arguments": {
+    "table_id": "cordova.access-control",
+    "version": "1.0",
+    "table_json": "{\"name\": \"access\", \"hit_policy\": \"FIRST\", \"rules\": [...]}",
+    "domain": "access-control",
+    "policy": "POL-7"
+  }
+}
+```
+
+### list_decision_tables
+
+Every registered table version with its hash, lowest version first; filter by `table_id` or `domain`. With `table_id` each entry includes the table JSON, which is how a receipt's `table_id` and `table_version` resolve back to the rules that applied.
+
+### Where tables live
+
+The registry is in memory for the life of the process. Start the server with `--tables-dir DIR` (or set `SDCGOVERNANCE_TABLES_DIR`) and every file in that directory is loaded at startup and every registration is written back, one JSON file per table version. A file whose table no longer matches its recorded hash is refused at startup.
 
 ## JSON-RPC 2.0 Format
 

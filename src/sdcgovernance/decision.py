@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
 
+from sdcgovernance.jcs import canonicalize
 from sdcgovernance.receipts import Decision
 
 
@@ -112,6 +113,47 @@ class DecisionTable:
     hit_policy: HitPolicy = HitPolicy.FIRST
     rules: list[Rule] = field(default_factory=list)
     description: str = ""
+
+
+def decision_table_to_dict(table: DecisionTable) -> dict[str, Any]:
+    """
+    The table's JSON form: the same shape ``evaluate_decision`` accepts.
+
+    This is the content that ``decision_table_hash`` names, so it carries
+    exactly what changes a decision (name, hit policy, rules with their
+    conditions and outcomes, descriptions) and nothing about where the table
+    is stored or when it was registered.
+    """
+    return {
+        "name": table.name,
+        "hit_policy": table.hit_policy.name,
+        "description": table.description,
+        "rules": [
+            {
+                "conditions": [
+                    {"field": c.field, "op": c.op.value, "value": c.value}
+                    for c in rule.conditions
+                ],
+                "outcome": rule.outcome.name,
+                "description": rule.description,
+            }
+            for rule in table.rules
+        ],
+    }
+
+
+def decision_table_hash(table: DecisionTable) -> str:
+    """
+    SHA-256 of the table's RFC 8785 canonical JSON (issue #3).
+
+    The same convention as ``receipt_hash`` and ``evidence_pack_hash``: an
+    independent implementation that canonicalizes ``decision_table_to_dict``
+    derives the same digest. Two spellings of one table hash the same; one
+    changed threshold does not.
+    """
+    import hashlib
+
+    return hashlib.sha256(canonicalize(decision_table_to_dict(table)).encode("utf-8")).hexdigest()
 
 
 @dataclass

@@ -155,6 +155,17 @@ class Receipt:
     # MTCP consumers pass the Evidence Pack hash here.
     context_hash: str = ""
 
+    # The policy that produced the decision (issue #3, 4.3.0). table_hash is
+    # the SHA-256 of the decision table's canonical JSON
+    # (``sdcgovernance.decision.decision_table_hash``); table_id and
+    # table_version name its registration when it came from a TableRegistry.
+    # With context_hash the receipt binds evidence, policy, decision and
+    # outcome. Included in receipt_hash only when present, so every receipt
+    # issued before 4.3.0 still verifies.
+    table_id: str = ""
+    table_version: str = ""
+    table_hash: str = ""
+
     # Which canonicalization produced receipt_hash. Receipts written before
     # RFC 8785 conformance carry no such field, and LEGACY_CANONICALIZATION
     # reproduces their bytes so they still verify. New receipts commit to the
@@ -209,6 +220,14 @@ class Receipt:
         # changed.
         if self.obligations:
             content["obligations"] = [asdict(o) for o in self.obligations]
+        # The policy (issue #3): present only when a table produced the
+        # decision, so earlier receipts hash exactly as they did.
+        if self.table_hash:
+            content["table_hash"] = self.table_hash
+        if self.table_id:
+            content["table_id"] = self.table_id
+        if self.table_version:
+            content["table_version"] = self.table_version
         if self.canonicalization == LEGACY_CANONICALIZATION:
             # Bug-compatible with pre-conformance receipts. Do not "fix" this:
             # its whole job is to reproduce bytes we already published.
@@ -281,6 +300,9 @@ class ReceiptChain:
         status_code: StatusCode = StatusCode.OK,
         obligations: list[Obligation] | None = None,
         context_hash: str = "",
+        table_id: str = "",
+        table_version: str = "",
+        table_hash: str = "",
     ) -> Receipt:
         """
         Create a new receipt and append it to the chain.
@@ -303,6 +325,9 @@ class ReceiptChain:
             status_code=status_code,
             obligations=obligations or [],
             context_hash=context_hash,
+            table_id=table_id,
+            table_version=table_version,
+            table_hash=table_hash,
         )
         self._receipts.append(receipt)
         return receipt
