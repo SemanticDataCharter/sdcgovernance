@@ -29,7 +29,7 @@ Basic usage::
 See https://github.com/SemanticDataCharter/sdcgovernance for documentation.
 """
 
-__version__ = "4.3.0"
+__version__ = "4.3.1"
 
 from sdcgovernance.engine import GovernanceEngine
 from sdcgovernance.decision import decision_table_hash
