@@ -1,0 +1,1141 @@
+{
+  "$comment": "Built by build_governance_vectors.py from sdcgovernance itself; tests/test_governance_vectors.py holds the library to it.",
+  "specification": "sdcgovernance decision tables: parse_decision_table, decision_table_hash, evaluate_decision_table, TableRegistry",
+  "sdcgovernance_version": "4.3.1",
+  "cases": [
+    {
+      "name": "risk",
+      "table": {
+        "name": "shipment-risk",
+        "hit_policy": "FIRST",
+        "description": "Release on risk and attestation",
+        "rules": [
+          {
+            "conditions": [
+              {
+                "field": "risk_score",
+                "op": ">=",
+                "value": 7
+              }
+            ],
+            "outcome": "DENY",
+            "description": "high risk"
+          },
+          {
+            "conditions": [
+              {
+                "field": "risk_score",
+                "op": ">=",
+                "value": 3
+              },
+              {
+                "field": "attestation_level",
+                "op": "==",
+                "value": "senior"
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "medium risk, senior attestation"
+          },
+          {
+            "conditions": [
+              {
+                "field": "risk_score",
+                "op": "<",
+                "value": 3
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "low risk"
+          }
+        ]
+      },
+      "table_hash": "1155a32cd55591153ee3635dc9a57f4de22b235cf884b852f5ed2626aeac0eab",
+      "evaluations": [
+        {
+          "context": {
+            "risk_score": 8
+          },
+          "decision": "DENY",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "First matching rule (#0): high risk",
+          "errors": []
+        },
+        {
+          "context": {
+            "risk_score": 5,
+            "attestation_level": "senior"
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            1
+          ],
+          "reasoning": "First matching rule (#1): medium risk, senior attestation",
+          "errors": []
+        },
+        {
+          "context": {
+            "risk_score": 5,
+            "attestation_level": "junior"
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'shipment-risk'",
+          "errors": []
+        },
+        {
+          "context": {
+            "risk_score": 2.5
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            2
+          ],
+          "reasoning": "First matching rule (#2): low risk",
+          "errors": []
+        },
+        {
+          "context": {
+            "risk_score": 7.0
+          },
+          "decision": "DENY",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "First matching rule (#0): high risk",
+          "errors": []
+        },
+        {
+          "context": {
+            "risk_score": "8"
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'shipment-risk'",
+          "errors": []
+        },
+        {
+          "context": {
+            "risk_score": null
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'shipment-risk'",
+          "errors": []
+        },
+        {
+          "context": {},
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'shipment-risk'",
+          "errors": []
+        },
+        {
+          "context": {
+            "risk_score": true
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            2
+          ],
+          "reasoning": "First matching rule (#2): low risk",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "protocol",
+      "table": {
+        "name": "protocol-unique",
+        "hit_policy": "UNIQUE",
+        "rules": [
+          {
+            "conditions": [
+              {
+                "field": "protocol",
+                "op": "in",
+                "value": [
+                  "HIPAA",
+                  "GDPR"
+                ]
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "recognised protocol"
+          },
+          {
+            "conditions": [
+              {
+                "field": "current_state",
+                "op": "==",
+                "value": "review"
+              }
+            ],
+            "outcome": "INDETERMINATE"
+          },
+          {
+            "conditions": [
+              {
+                "field": "protocol",
+                "op": "not_in",
+                "value": [
+                  "HIPAA",
+                  "GDPR"
+                ]
+              },
+              {
+                "field": "current_state",
+                "op": "!=",
+                "value": "review"
+              }
+            ],
+            "outcome": "DENY",
+            "description": "unrecognised protocol"
+          }
+        ]
+      },
+      "table_hash": "31c1af23514e91e2f6fd64b4834b97b49c72ade2f1e5cd9ec14e92ececd0b508",
+      "evaluations": [
+        {
+          "context": {
+            "protocol": "HIPAA",
+            "current_state": "approved"
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "Unique matching rule (#0): recognised protocol",
+          "errors": []
+        },
+        {
+          "context": {
+            "protocol": "HIPAA",
+            "current_state": "review"
+          },
+          "decision": "INDETERMINATE",
+          "matched_rules": [
+            0,
+            1
+          ],
+          "reasoning": "UNIQUE hit policy violated: 2 rules matched",
+          "errors": [
+            "UNIQUE hit policy requires exactly 1 match, but 2 rules matched: [0, 1]"
+          ]
+        },
+        {
+          "context": {
+            "protocol": "FERPA",
+            "current_state": "approved"
+          },
+          "decision": "DENY",
+          "matched_rules": [
+            2
+          ],
+          "reasoning": "Unique matching rule (#2): unrecognised protocol",
+          "errors": []
+        },
+        {
+          "context": {
+            "protocol": "FERPA",
+            "current_state": "review"
+          },
+          "decision": "INDETERMINATE",
+          "matched_rules": [
+            1
+          ],
+          "reasoning": "Unique matching rule (#1)",
+          "errors": []
+        },
+        {
+          "context": {
+            "current_state": "approved"
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'protocol-unique'",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "collect",
+      "table": {
+        "name": "collect-restrictive",
+        "hit_policy": "COLLECT",
+        "rules": [
+          {
+            "conditions": [
+              {
+                "field": "amount",
+                "op": "<=",
+                "value": 1000
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "within limit"
+          },
+          {
+            "conditions": [
+              {
+                "field": "region",
+                "op": "==",
+                "value": "EU"
+              }
+            ],
+            "outcome": "NOT_APPLICABLE",
+            "description": "no EU rule"
+          },
+          {
+            "conditions": [
+              {
+                "field": "flagged",
+                "op": "==",
+                "value": true
+              }
+            ],
+            "outcome": "INDETERMINATE",
+            "description": "flagged for review"
+          },
+          {
+            "conditions": [
+              {
+                "field": "amount",
+                "op": ">",
+                "value": 5000
+              }
+            ],
+            "outcome": "DENY",
+            "description": "over hard limit"
+          },
+          {
+            "conditions": [],
+            "outcome": "PERMIT"
+          }
+        ]
+      },
+      "table_hash": "3a8df382e0433ab4ea40709e8e7b81ee4565f8024dbdc25bf61eadcbb4549a02",
+      "evaluations": [
+        {
+          "context": {
+            "amount": 500
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            0,
+            4
+          ],
+          "reasoning": "COLLECT: 2 rules matched, most restrictive outcome: PERMIT. Rule #0: within limit",
+          "errors": []
+        },
+        {
+          "context": {
+            "amount": 500,
+            "region": "EU"
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            0,
+            1,
+            4
+          ],
+          "reasoning": "COLLECT: 3 rules matched, most restrictive outcome: PERMIT. Rule #0: within limit; Rule #1: no EU rule",
+          "errors": []
+        },
+        {
+          "context": {
+            "amount": 500,
+            "flagged": true
+          },
+          "decision": "INDETERMINATE",
+          "matched_rules": [
+            0,
+            2,
+            4
+          ],
+          "reasoning": "COLLECT: 3 rules matched, most restrictive outcome: INDETERMINATE. Rule #0: within limit; Rule #2: flagged for review",
+          "errors": []
+        },
+        {
+          "context": {
+            "amount": 9000,
+            "flagged": true
+          },
+          "decision": "DENY",
+          "matched_rules": [
+            2,
+            3,
+            4
+          ],
+          "reasoning": "COLLECT: 3 rules matched, most restrictive outcome: DENY. Rule #2: flagged for review; Rule #3: over hard limit",
+          "errors": []
+        },
+        {
+          "context": {
+            "flagged": 1
+          },
+          "decision": "INDETERMINATE",
+          "matched_rules": [
+            2,
+            4
+          ],
+          "reasoning": "COLLECT: 2 rules matched, most restrictive outcome: INDETERMINATE. Rule #2: flagged for review",
+          "errors": []
+        },
+        {
+          "context": {},
+          "decision": "PERMIT",
+          "matched_rules": [
+            4
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. ",
+          "errors": []
+        }
+      ]
+    },
+    {
+      "name": "semantics",
+      "table": {
+        "name": "cross-language-semantics",
+        "hit_policy": "COLLECT",
+        "rules": [
+          {
+            "conditions": [
+              {
+                "field": "n",
+                "op": "==",
+                "value": 1
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "n == 1 (true == 1 in Python)"
+          },
+          {
+            "conditions": [
+              {
+                "field": "word",
+                "op": "in",
+                "value": "shipped,paid"
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "substring of a string"
+          },
+          {
+            "conditions": [
+              {
+                "field": "key",
+                "op": "in",
+                "value": {
+                  "a": 1,
+                  "b": 2
+                }
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "key of an object"
+          },
+          {
+            "conditions": [
+              {
+                "field": "flag",
+                "op": "in",
+                "value": [
+                  1,
+                  2
+                ]
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "true in [1, 2]"
+          },
+          {
+            "conditions": [
+              {
+                "field": "s",
+                "op": ">",
+                "value": "￿"
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "code point order"
+          },
+          {
+            "conditions": [
+              {
+                "field": "tags",
+                "op": "==",
+                "value": [
+                  "a",
+                  "b"
+                ]
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "list equality"
+          },
+          {
+            "conditions": [
+              {
+                "field": "tags",
+                "op": "<",
+                "value": [
+                  "a",
+                  "c"
+                ]
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "list order"
+          },
+          {
+            "conditions": [
+              {
+                "field": "mixed",
+                "op": "<",
+                "value": 3
+              }
+            ],
+            "outcome": "DENY",
+            "description": "order across types is false"
+          },
+          {
+            "conditions": [
+              {
+                "field": "mixed",
+                "op": "!=",
+                "value": 3
+              }
+            ],
+            "outcome": "INDETERMINATE",
+            "description": "inequality across types is true"
+          },
+          {
+            "conditions": [
+              {
+                "field": "obj",
+                "op": "==",
+                "value": {
+                  "x": [
+                    1,
+                    2.5
+                  ]
+                }
+              }
+            ],
+            "outcome": "PERMIT",
+            "description": "object equality"
+          }
+        ]
+      },
+      "table_hash": "b65a95184b18b7b6f499720a1c9cfffffbb8bf1ddf7184ef80dec5fe8cad1e4b",
+      "evaluations": [
+        {
+          "context": {
+            "n": true
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. Rule #0: n == 1 (true == 1 in Python)",
+          "errors": []
+        },
+        {
+          "context": {
+            "n": 1.0
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            0
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. Rule #0: n == 1 (true == 1 in Python)",
+          "errors": []
+        },
+        {
+          "context": {
+            "n": "1"
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'cross-language-semantics'",
+          "errors": []
+        },
+        {
+          "context": {
+            "word": "ship"
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            1
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. Rule #1: substring of a string",
+          "errors": []
+        },
+        {
+          "context": {
+            "word": "refunded"
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'cross-language-semantics'",
+          "errors": []
+        },
+        {
+          "context": {
+            "key": "a"
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            2
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. Rule #2: key of an object",
+          "errors": []
+        },
+        {
+          "context": {
+            "key": "x"
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'cross-language-semantics'",
+          "errors": []
+        },
+        {
+          "context": {
+            "flag": true
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            3
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. Rule #3: true in [1, 2]",
+          "errors": []
+        },
+        {
+          "context": {
+            "s": "😀"
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            4
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. Rule #4: code point order",
+          "errors": []
+        },
+        {
+          "context": {
+            "s": ""
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'cross-language-semantics'",
+          "errors": []
+        },
+        {
+          "context": {
+            "tags": [
+              "a",
+              "b"
+            ]
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            5,
+            6
+          ],
+          "reasoning": "COLLECT: 2 rules matched, most restrictive outcome: PERMIT. Rule #5: list equality; Rule #6: list order",
+          "errors": []
+        },
+        {
+          "context": {
+            "tags": [
+              "a",
+              "b",
+              "z"
+            ]
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            6
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. Rule #6: list order",
+          "errors": []
+        },
+        {
+          "context": {
+            "tags": [
+              "b"
+            ]
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'cross-language-semantics'",
+          "errors": []
+        },
+        {
+          "context": {
+            "mixed": "x"
+          },
+          "decision": "INDETERMINATE",
+          "matched_rules": [
+            8
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: INDETERMINATE. Rule #8: inequality across types is true",
+          "errors": []
+        },
+        {
+          "context": {
+            "mixed": [
+              3
+            ]
+          },
+          "decision": "INDETERMINATE",
+          "matched_rules": [
+            8
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: INDETERMINATE. Rule #8: inequality across types is true",
+          "errors": []
+        },
+        {
+          "context": {
+            "obj": {
+              "x": [
+                1,
+                2.5
+              ]
+            }
+          },
+          "decision": "PERMIT",
+          "matched_rules": [
+            9
+          ],
+          "reasoning": "COLLECT: 1 rules matched, most restrictive outcome: PERMIT. Rule #9: object equality",
+          "errors": []
+        },
+        {
+          "context": {
+            "obj": {
+              "x": [
+                1,
+                2
+              ]
+            }
+          },
+          "decision": "NOT_APPLICABLE",
+          "matched_rules": [],
+          "reasoning": "No rules matched in decision table 'cross-language-semantics'",
+          "errors": []
+        }
+      ]
+    }
+  ],
+  "spellings": [
+    {
+      "description": "key order and whitespace do not matter",
+      "tables": [
+        {
+          "name": "shipment-risk",
+          "hit_policy": "FIRST",
+          "description": "Release on risk and attestation",
+          "rules": [
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": ">=",
+                  "value": 7
+                }
+              ],
+              "outcome": "DENY",
+              "description": "high risk"
+            },
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": ">=",
+                  "value": 3
+                },
+                {
+                  "field": "attestation_level",
+                  "op": "==",
+                  "value": "senior"
+                }
+              ],
+              "outcome": "PERMIT",
+              "description": "medium risk, senior attestation"
+            },
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": "<",
+                  "value": 3
+                }
+              ],
+              "outcome": "PERMIT",
+              "description": "low risk"
+            }
+          ]
+        },
+        {
+          "description": "Release on risk and attestation",
+          "hit_policy": "FIRST",
+          "name": "shipment-risk",
+          "rules": [
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": ">=",
+                  "value": 7
+                }
+              ],
+              "description": "high risk",
+              "outcome": "DENY"
+            },
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": ">=",
+                  "value": 3
+                },
+                {
+                  "field": "attestation_level",
+                  "op": "==",
+                  "value": "senior"
+                }
+              ],
+              "description": "medium risk, senior attestation",
+              "outcome": "PERMIT"
+            },
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": "<",
+                  "value": 3
+                }
+              ],
+              "description": "low risk",
+              "outcome": "PERMIT"
+            }
+          ]
+        }
+      ],
+      "same_hash": true,
+      "hashes": [
+        "1155a32cd55591153ee3635dc9a57f4de22b235cf884b852f5ed2626aeac0eab",
+        "1155a32cd55591153ee3635dc9a57f4de22b235cf884b852f5ed2626aeac0eab"
+      ]
+    },
+    {
+      "description": "an absent description, an empty one and null are the same",
+      "tables": [
+        {
+          "rules": [
+            {
+              "conditions": [],
+              "outcome": "PERMIT"
+            }
+          ]
+        },
+        {
+          "name": "",
+          "description": "",
+          "hit_policy": "FIRST",
+          "rules": [
+            {
+              "conditions": null,
+              "outcome": "PERMIT",
+              "description": null
+            }
+          ]
+        }
+      ],
+      "same_hash": true,
+      "hashes": [
+        "4fc41bf430fb8f2f7b7067445f30834b50eb1c34cff07d96915f5803adc8e0ff",
+        "4fc41bf430fb8f2f7b7067445f30834b50eb1c34cff07d96915f5803adc8e0ff"
+      ]
+    },
+    {
+      "description": "a non-string field name is read as Python str() reads it",
+      "tables": [
+        {
+          "name": "t",
+          "rules": [
+            {
+              "conditions": [
+                {
+                  "field": 1,
+                  "op": "==",
+                  "value": 1
+                }
+              ],
+              "outcome": "PERMIT"
+            }
+          ]
+        },
+        {
+          "name": "t",
+          "rules": [
+            {
+              "conditions": [
+                {
+                  "field": "1",
+                  "op": "==",
+                  "value": 1
+                }
+              ],
+              "outcome": "PERMIT"
+            }
+          ]
+        }
+      ],
+      "same_hash": true,
+      "hashes": [
+        "b36b172eb1565c0b6c672c7e5740cd7aa525cabc5f1d0bfa9a5f39eba646a17f",
+        "b36b172eb1565c0b6c672c7e5740cd7aa525cabc5f1d0bfa9a5f39eba646a17f"
+      ]
+    },
+    {
+      "description": "one changed threshold changes the hash",
+      "tables": [
+        {
+          "name": "shipment-risk",
+          "hit_policy": "FIRST",
+          "description": "Release on risk and attestation",
+          "rules": [
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": ">=",
+                  "value": 7
+                }
+              ],
+              "outcome": "DENY",
+              "description": "high risk"
+            },
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": ">=",
+                  "value": 3
+                },
+                {
+                  "field": "attestation_level",
+                  "op": "==",
+                  "value": "senior"
+                }
+              ],
+              "outcome": "PERMIT",
+              "description": "medium risk, senior attestation"
+            },
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": "<",
+                  "value": 3
+                }
+              ],
+              "outcome": "PERMIT",
+              "description": "low risk"
+            }
+          ]
+        },
+        {
+          "name": "shipment-risk",
+          "hit_policy": "FIRST",
+          "description": "Release on risk and attestation",
+          "rules": [
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": ">=",
+                  "value": 8
+                }
+              ],
+              "outcome": "DENY",
+              "description": "high risk"
+            },
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": ">=",
+                  "value": 3
+                },
+                {
+                  "field": "attestation_level",
+                  "op": "==",
+                  "value": "senior"
+                }
+              ],
+              "outcome": "PERMIT",
+              "description": "medium risk, senior attestation"
+            },
+            {
+              "conditions": [
+                {
+                  "field": "risk_score",
+                  "op": "<",
+                  "value": 3
+                }
+              ],
+              "outcome": "PERMIT",
+              "description": "low risk"
+            }
+          ]
+        }
+      ],
+      "same_hash": false,
+      "hashes": [
+        "1155a32cd55591153ee3635dc9a57f4de22b235cf884b852f5ed2626aeac0eab",
+        "e7a0334b3e70d3a51ff15562fda2881d3677efeb08d6fc8558888886626ea400"
+      ]
+    }
+  ],
+  "refused": [
+    {
+      "description": "not an object",
+      "table": [
+        "rules"
+      ]
+    },
+    {
+      "description": "unknown hit policy",
+      "table": {
+        "hit_policy": "ANY",
+        "rules": []
+      }
+    },
+    {
+      "description": "a null hit policy",
+      "table": {
+        "hit_policy": null,
+        "rules": []
+      }
+    },
+    {
+      "description": "rules not a list",
+      "table": {
+        "rules": {
+          "0": {}
+        }
+      }
+    },
+    {
+      "description": "a rule not an object",
+      "table": {
+        "rules": [
+          "PERMIT"
+        ]
+      }
+    },
+    {
+      "description": "unknown outcome",
+      "table": {
+        "rules": [
+          {
+            "conditions": [],
+            "outcome": "ALLOW"
+          }
+        ]
+      }
+    },
+    {
+      "description": "unknown operator",
+      "table": {
+        "rules": [
+          {
+            "conditions": [
+              {
+                "field": "a",
+                "op": "=",
+                "value": 1
+              }
+            ],
+            "outcome": "PERMIT"
+          }
+        ]
+      }
+    },
+    {
+      "description": "a condition without a value",
+      "table": {
+        "rules": [
+          {
+            "conditions": [
+              {
+                "field": "a",
+                "op": "=="
+              }
+            ],
+            "outcome": "PERMIT"
+          }
+        ]
+      }
+    }
+  ],
+  "raises": [
+    {
+      "description": "`in` against a number",
+      "table": {
+        "rules": [
+          {
+            "conditions": [
+              {
+                "field": "a",
+                "op": "in",
+                "value": 5
+              }
+            ],
+            "outcome": "PERMIT"
+          }
+        ]
+      },
+      "context": {
+        "a": 5
+      }
+    }
+  ],
+  "registry": {
+    "registered_in_order": [
+      "1.10",
+      "1.9",
+      "2",
+      "1.2.3",
+      "beta",
+      "1.9.0",
+      "alpha"
+    ],
+    "versions": [
+      "1.2.3",
+      "1.9",
+      "1.9.0",
+      "1.10",
+      "2",
+      "alpha",
+      "beta"
+    ],
+    "latest": "beta",
+    "same_content_again_is_accepted": true,
+    "different_content_same_version_is_refused": true,
+    "invalid_tokens": [
+      "",
+      ".hidden",
+      "a b",
+      "a/b",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ]
+  }
+}
