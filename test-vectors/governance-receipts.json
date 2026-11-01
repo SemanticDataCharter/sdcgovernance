@@ -1,0 +1,271 @@
+{
+  "$comment": "Built by build_governance_vectors.py from sdcgovernance itself; tests/test_governance_vectors.py holds the library to it.",
+  "specification": "sdcgovernance governance Receipts: receipt_hash over the content Receipt._compute_hash names",
+  "sdcgovernance_version": "4.3.1",
+  "legacy_canonicalization": "legacy-json-dumps",
+  "vectors": [
+    {
+      "description": "a PERMIT, nothing optional",
+      "receipt": {
+        "decision": "PERMIT",
+        "reasoning": "workflow transition permitted",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "i-1",
+        "instance_version": "1",
+        "source_instance_id": "",
+        "source_version_id": "",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": null,
+        "receipt_hash": "16c0ced38c48f1890feca49b070e8f6bc0488dc10cc617e12dea45d583492162",
+        "dimensions_checked": [
+          "workflow"
+        ],
+        "errors": [],
+        "context_hash": "",
+        "table_id": "",
+        "table_version": "",
+        "table_hash": "",
+        "canonicalization": "rfc8785"
+      },
+      "verifies": true
+    },
+    {
+      "description": "a DENY with errors and a previous hash",
+      "receipt": {
+        "decision": "DENY",
+        "reasoning": "role missing",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "i-1",
+        "instance_version": "2",
+        "source_instance_id": "",
+        "source_version_id": "",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": "abababababababababababababababababababababababababababababababab",
+        "receipt_hash": "d9dbc0c08dd3ae5da9364ae45a9d75243c0dd066bf540a9e0ff23042ef67ccd5",
+        "dimensions_checked": [
+          "workflow",
+          "party_role"
+        ],
+        "errors": [
+          "party lacks role approver"
+        ],
+        "context_hash": "",
+        "table_id": "",
+        "table_version": "",
+        "table_hash": "",
+        "canonicalization": "rfc8785"
+      },
+      "verifies": true
+    },
+    {
+      "description": "obligations are inside the hash",
+      "receipt": {
+        "decision": "PERMIT",
+        "reasoning": "",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [
+          {
+            "obligation_id": "notify",
+            "description": "tell the buyer",
+            "is_obligation": true,
+            "attributes": {
+              "within_hours": 24,
+              "rate": 1.5,
+              "to": [
+                "buyer"
+              ]
+            }
+          },
+          {
+            "obligation_id": "log",
+            "description": "",
+            "is_obligation": false,
+            "attributes": {}
+          }
+        ],
+        "instance_id": "i-2",
+        "instance_version": "",
+        "source_instance_id": "",
+        "source_version_id": "",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": null,
+        "receipt_hash": "3a22ecd1b474817697fee985b62c76eb853741fb24be672c1b7bd46c9acbc0d9",
+        "dimensions_checked": [],
+        "errors": [],
+        "context_hash": "",
+        "table_id": "",
+        "table_version": "",
+        "table_hash": "",
+        "canonicalization": "rfc8785"
+      },
+      "verifies": true
+    },
+    {
+      "description": "source lineage is inside the hash when present",
+      "receipt": {
+        "decision": "PERMIT",
+        "reasoning": "",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "i-3",
+        "instance_version": "",
+        "source_instance_id": "EPIC-998",
+        "source_version_id": "7",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": null,
+        "receipt_hash": "8b2ec9fc212ff4c74218919d0cf0d9bde31a503625f811e2cb57d83355e37796",
+        "dimensions_checked": [],
+        "errors": [],
+        "context_hash": "",
+        "table_id": "",
+        "table_version": "",
+        "table_hash": "",
+        "canonicalization": "rfc8785"
+      },
+      "verifies": true
+    },
+    {
+      "description": "the policy is inside the hash",
+      "receipt": {
+        "decision": "DENY",
+        "reasoning": "First matching rule (#0): high risk",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "i-4",
+        "instance_version": "",
+        "source_instance_id": "",
+        "source_version_id": "",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": null,
+        "receipt_hash": "0cdcf864f710ddef5f58567865af9f4f39a2c5e7090b1af46fdc3c2e16e23cf6",
+        "dimensions_checked": [],
+        "errors": [],
+        "context_hash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "table_id": "shipment-risk",
+        "table_version": "1.2",
+        "table_hash": "1155a32cd55591153ee3635dc9a57f4de22b235cf884b852f5ed2626aeac0eab",
+        "canonicalization": "rfc8785"
+      },
+      "verifies": true
+    },
+    {
+      "description": "non-ASCII and astral text",
+      "receipt": {
+        "decision": "NOT_APPLICABLE",
+        "reasoning": "No rules matched in decision table 'café 🚚'",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:missing-attribute",
+        "obligations": [],
+        "instance_id": "i-5",
+        "instance_version": "",
+        "source_instance_id": "",
+        "source_version_id": "",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": null,
+        "receipt_hash": "4c04dba01c14f41e1ee3118366f7764cade54849abdd892baf1083772255ae92",
+        "dimensions_checked": [],
+        "errors": [],
+        "context_hash": "",
+        "table_id": "",
+        "table_version": "",
+        "table_hash": "",
+        "canonicalization": "rfc8785"
+      },
+      "verifies": true
+    },
+    {
+      "description": "legacy canonicalization, no numbers",
+      "receipt": {
+        "decision": "PERMIT",
+        "reasoning": "legacy",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "i-6",
+        "instance_version": "",
+        "source_instance_id": "",
+        "source_version_id": "",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": null,
+        "receipt_hash": "f34534fc14c997518cb99a573651eb75b9828a0abf8b0f79b07453b0f409d824",
+        "dimensions_checked": [],
+        "errors": [
+          "tab\there",
+          "quote\" and \\"
+        ],
+        "context_hash": "",
+        "table_id": "",
+        "table_version": "",
+        "table_hash": ""
+      },
+      "verifies": true
+    },
+    {
+      "description": "an obligation changed after hashing",
+      "receipt": {
+        "decision": "PERMIT",
+        "reasoning": "",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [
+          {
+            "obligation_id": "notify",
+            "description": "tell the buyer",
+            "is_obligation": true,
+            "attributes": {
+              "within_hours": 48,
+              "rate": 1.5,
+              "to": [
+                "buyer"
+              ]
+            }
+          },
+          {
+            "obligation_id": "log",
+            "description": "",
+            "is_obligation": false,
+            "attributes": {}
+          }
+        ],
+        "instance_id": "i-2",
+        "instance_version": "",
+        "source_instance_id": "",
+        "source_version_id": "",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": null,
+        "receipt_hash": "3a22ecd1b474817697fee985b62c76eb853741fb24be672c1b7bd46c9acbc0d9",
+        "dimensions_checked": [],
+        "errors": [],
+        "context_hash": "",
+        "table_id": "",
+        "table_version": "",
+        "table_hash": "",
+        "canonicalization": "rfc8785"
+      },
+      "verifies": false
+    },
+    {
+      "description": "the policy version changed after hashing",
+      "receipt": {
+        "decision": "DENY",
+        "reasoning": "First matching rule (#0): high risk",
+        "status_code": "urn:oasis:names:tc:xacml:1.0:status:ok",
+        "obligations": [],
+        "instance_id": "i-4",
+        "instance_version": "",
+        "source_instance_id": "",
+        "source_version_id": "",
+        "timestamp": "2026-11-01T12:00:00+00:00",
+        "previous_hash": null,
+        "receipt_hash": "0cdcf864f710ddef5f58567865af9f4f39a2c5e7090b1af46fdc3c2e16e23cf6",
+        "dimensions_checked": [],
+        "errors": [],
+        "context_hash": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+        "table_id": "shipment-risk",
+        "table_version": "1.3",
+        "table_hash": "1155a32cd55591153ee3635dc9a57f4de22b235cf884b852f5ed2626aeac0eab",
+        "canonicalization": "rfc8785"
+      },
+      "verifies": false
+    }
+  ]
+}

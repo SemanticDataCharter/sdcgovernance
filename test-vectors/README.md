@@ -55,6 +55,41 @@ anywhere in a document is enough.
 Emitting something for these would produce a hash that looks fine and fails
 only in someone else's verifier.
 
+## `decision-tables.json` and `governance-receipts.json`
+
+Decision tables and governance Receipts, as this library computes them. Both
+files are built by `build_governance_vectors.py` from the library itself
+(`PYTHONPATH=src python test-vectors/build_governance_vectors.py`), and
+`tests/test_governance_vectors.py` fails if the library and the files disagree.
+
+**`decision-tables.json`:**
+- **`cases`:** four tables, one per hit policy plus one for cross-language
+  semantics. Each has its `table_hash` (SHA-256 of the RFC 8785 form) and the
+  decision, matched rules, reasoning and errors for each context.
+- **`spellings`:** pairs that must hash the same (key order, an absent or null
+  description) or differently (one changed threshold).
+- **`refused`:** tables that must not load.
+- **`raises`:** evaluations the reference does not decide.
+- **`registry`:** version order, the latest version, and the conflict rule.
+
+**`governance-receipts.json`:** governance Receipts as they appear on the wire,
+with whether each one's `receipt_hash` recomputes. A Receipt with no
+`canonicalization` field was hashed with the legacy `json.dumps` rendering.
+
+### Where an implementation in another language reads a table differently
+
+The rules are Python's, and the `semantics` case exists to hold another
+implementation to them:
+- **Booleans are integers.** `true == 1` and `true in [1, 2]` both hold.
+- **`in` depends on what it tests.** Against a string it is a substring test;
+  against an object, a key test.
+- **Strings order by code point,** not by UTF-16 code unit.
+- **Lists compare element by element.**
+- **Ordering across types is false,** and so is `==` across types. `!=`
+  across types is true.
+- **A missing or null field matches no condition.**
+- **`in` against a number raises** rather than deciding (`raises`).
+
 ## Scope
 
 Receipts (`sdcgovernance.receipts`) use RFC 8785 and carry
