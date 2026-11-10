@@ -205,3 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Rendered conformance report (the .md is the source)
+docs/prov-conformance/PROV-O_Conformance_Report.pdf
