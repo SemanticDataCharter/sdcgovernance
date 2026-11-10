@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Decision-table and governance-Receipt vectors** (`test-vectors/decision-tables.json`, `test-vectors/governance-receipts.json`), built from the library by `test-vectors/build_governance_vectors.py`, for other implementations to check against.
+  - The tables give each `table_hash`, each decision with its matched rules, reasoning and errors, the spellings that hash alike, the tables that must not load, and the registry's version order. Python's semantics are spelled out where another language would differ.
+  - The Receipts give each wire form with whether its `receipt_hash` recomputes, including a legacy one and two tampered ones.
+  - `tests/test_governance_vectors.py` fails if the library and the files disagree. No change to the package.
+
 ## [4.3.1] - 2026-10-25
 
 ### Security

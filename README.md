@@ -91,6 +91,8 @@ A client configuration needs only `"command": "uvx", "args": ["sdcgovernance"]`.
 
 The MCP server exposes governance as tools that agents call. The agent runs the loop. sdcgovernance advises.
 
+Also listed on [mcprush](https://mcprush.com/semanticdatacharter/sdcgovernance-mcp).
+
 ## Standards
 
 - **OASIS XACML** - decision semantics (PERMIT/DENY/INDETERMINATE)
