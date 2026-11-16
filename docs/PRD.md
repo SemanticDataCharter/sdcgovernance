@@ -28,7 +28,7 @@ SDC instances carry their own meaning. sdcgovernance extends this to enforcement
 | **SDC Practitioners** | Model governance components in SDCStudio. Install sdcgovernance at client sites. |
 | **Application developers** | Call Python API from generated apps or custom code. |
 | **Standards reviewers** | Evaluate standards compliance via CordovaOS integration target. |
-| **Enterprise architects** | Assess governance capabilities for EU AI Act, HIPAA, SOX compliance. |
+| **Enterprise architects** | Assess governance capabilities against their own regulatory obligations. |
 
 ## 4. Design Constraints
 
@@ -254,7 +254,7 @@ Vocabulary bindings on the components within these slots confirm which standards
 | P5-01 | Decision table evaluation | Given a decision table with 3 rules, engine evaluates instance data against all rules and returns the matching rule's outcome. |
 | P5-02 | Multi-condition rules | Rule: "PERMIT if risk_score < 5 AND attestation_level >= 'senior'". Instance with risk_score=3, attestation_level='senior' returns PERMIT. |
 | P5-03 | Decision tables composable as governance components | Decision table is an SDC component in the model, discovered by vocabulary binding. |
-| P5-04 | `DM.protocol` as decision table input | Decision rules can reference DM.protocol value as a condition. Rule: "PERMIT transition only if protocol = 'HIPAA-compliant'". Instance with non-matching protocol returns DENY. |
+| P5-04 | `DM.protocol` as decision table input | Decision rules can reference DM.protocol value as a condition. Rule: "PERMIT transition only if protocol = 'PROTO-2026-A'". Instance with non-matching protocol returns DENY. |
 | P5-05 | `DM.XdLink[]` relation type validation | Decision rules can validate that XdLink relation types are appropriate for the governance context. Rule: "DENY if XdLink relation='replaces' but target model has incompatible governance." |
 | P5-06 | No match returns INDETERMINATE | If no rule matches, the decision is INDETERMINATE. |
 | P5-07 | Decision table results include receipt | Every evaluation produces a hash-chained receipt documenting which rules were checked and which matched. |

@@ -89,9 +89,9 @@ Rule(
 
 ```python
 Rule(
-    conditions=[Condition("protocol", ComparisonOp.EQ, "HIPAA-compliant")],
+    conditions=[Condition("protocol", ComparisonOp.EQ, "PROTO-2026-A")],
     outcome=Decision.PERMIT,
-    description="Only HIPAA-compliant protocols allowed",
+    description="Only the approved protocol is allowed",
 )
 ```
 
