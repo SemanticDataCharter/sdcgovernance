@@ -261,21 +261,21 @@ class TestProtocolCondition:
             hit_policy=HitPolicy.FIRST,
             rules=[
                 Rule(
-                    conditions=[Condition("protocol", ComparisonOp.EQ, "HIPAA-compliant")],
+                    conditions=[Condition("protocol", ComparisonOp.EQ, "PROTO-2026-A")],
                     outcome=Decision.PERMIT,
-                    description="HIPAA protocol accepted",
+                    description="Approved protocol accepted",
                 ),
                 Rule(
                     conditions=[],
                     outcome=Decision.DENY,
-                    description="Non-HIPAA protocol denied",
+                    description="Any other protocol denied",
                 ),
             ],
         )
 
     def test_matching_protocol_permits(self, protocol_table):
         result = evaluate_decision_table(
-            protocol_table, {"protocol": "HIPAA-compliant"}
+            protocol_table, {"protocol": "PROTO-2026-A"}
         )
         assert result.decision == Decision.PERMIT
 
@@ -348,7 +348,7 @@ class TestBuildContext:
         )
         assert ctx["instance_id"] == "cuid2-test-decision-001"
         assert ctx["current_state"] == "review"
-        assert ctx["protocol"] == "HIPAA-compliant"
+        assert ctx["protocol"] == "PROTO-2026-A"
         assert "replaces" in ctx["xdlink_relations"]
         assert "evidence" in ctx["xdlink_relations"]
 
@@ -359,7 +359,7 @@ class TestBuildContext:
         )
         assert ctx["risk_score"] == 3
         assert ctx["attestation_level"] == "senior"
-        assert ctx["protocol"] == "HIPAA-compliant"
+        assert ctx["protocol"] == "PROTO-2026-A"
 
     def test_context_minimal_instance(self):
         ctx = build_context_from_instance(

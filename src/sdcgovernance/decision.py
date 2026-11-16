@@ -177,7 +177,7 @@ def evaluate_decision_table(
     {
         "risk_score": 3,
         "attestation_level": "senior",
-        "protocol": "HIPAA-compliant",
+        "protocol": "PROTO-2026-A",
         "current_state": "review",
         "xdlink_relation": "replaces",
     }

@@ -73,7 +73,7 @@ def test_all_tools_return_single_text_content():
 
 | Decision Table | Context | Decision |
 |---|---|---|
-| Protocol check (HIPAA) | protocol="HIPAA-compliant" | PERMIT |
+| Protocol check | protocol="PROTO-2026-A" | PERMIT |
 | Risk check | risk_score=3 (extra context) | PERMIT |
 | No matching rules | nonexistent field | INDETERMINATE |
 

@@ -9,7 +9,7 @@
   <current-state>review</current-state>
   <protocol>
     <label>Protocol</label>
-    <xdstring-value>HIPAA-compliant</xdstring-value>
+    <xdstring-value>PROTO-2026-A</xdstring-value>
   </protocol>
   <sdc4:XdLink>
     <label>Supersedes</label>

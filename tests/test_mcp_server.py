@@ -225,14 +225,14 @@ class TestEvaluateDecision:
             "hit_policy": "FIRST",
             "rules": [
                 {
-                    "conditions": [{"field": "protocol", "op": "==", "value": "HIPAA-compliant"}],
+                    "conditions": [{"field": "protocol", "op": "==", "value": "PROTO-2026-A"}],
                     "outcome": "PERMIT",
-                    "description": "HIPAA protocol accepted",
+                    "description": "Approved protocol accepted",
                 },
                 {
                     "conditions": [],
                     "outcome": "DENY",
-                    "description": "Non-HIPAA denied",
+                    "description": "Any other protocol denied",
                 },
             ],
         }

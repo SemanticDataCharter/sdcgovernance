@@ -73,7 +73,7 @@ All matching rules evaluated. Most restrictive outcome wins (DENY > INDETERMINAT
 
 | Protocol Value | Rule | Decision |
 |---|---|---|
-| "HIPAA-compliant" | `protocol == "HIPAA-compliant"` -> PERMIT | PERMIT |
+| "PROTO-2026-A" | `protocol == "PROTO-2026-A"` -> PERMIT | PERMIT |
 | "internal-only" | Falls through to default DENY | DENY |
 | absent | Falls through to default DENY | DENY |
 
@@ -99,7 +99,7 @@ def test_deterministic_evaluation():
 |---|---|
 | `instance_id` | "cuid2-test-decision-001" |
 | `current_state` | "review" |
-| `protocol` | "HIPAA-compliant" |
+| `protocol` | "PROTO-2026-A" |
 | `xdlink_relations` | ["replaces", "evidence"] |
 
 Extra context can be merged: `{"risk_score": 3, "attestation_level": "senior"}`
